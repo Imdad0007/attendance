@@ -28,7 +28,7 @@ class HomePage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
-            "App Manager",
+            "Attendance's App",
             style: TextStyle(
               fontSize: 28,
               fontFamily: 'Squid',
