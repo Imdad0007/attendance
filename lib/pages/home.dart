@@ -4,6 +4,7 @@ import 'package:app/composants/nav_item.dart';
 import 'package:app/departements/accounting.dart';
 import 'package:app/departements/software.dart';
 import 'package:app/departements/trading.dart';
+import 'package:app/departements/presence.dart';
 import 'package:app/pages/login.dart';
 
 class HomePage extends StatelessWidget {
