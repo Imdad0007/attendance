@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:app/composants/colors.dart';
+import 'package:attendance/composants/colors.dart';
 
 class Textfield extends StatelessWidget {
   final String hintText;

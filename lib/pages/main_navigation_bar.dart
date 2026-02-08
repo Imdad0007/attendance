@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:app/pages/home.dart';
-import 'package:app/pages/presence.dart';
-import 'package:app/pages/historique.dart';
-import 'package:app/pages/profil.dart';
-import 'package:app/composants/colors.dart';
+import 'package:attendance/pages/home.dart';
+import 'package:attendance/pages/presence.dart';
+import 'package:attendance/pages/historique.dart';
+import 'package:attendance/pages/profil.dart';
+import 'package:attendance/composants/colors.dart';
 
 class MainNavigationBar extends StatefulWidget {
   const MainNavigationBar({super.key});
@@ -66,12 +66,14 @@ class _MainNavigationBarState extends State<MainNavigationBar> {
             "Attendance",
             style: TextStyle(
               color: AppColors.white,
+              fontFamily: 'JetBrainsMono',
               fontSize: 28,
               fontWeight: FontWeight.bold,
               letterSpacing: 5.0,
             ),
           ),
         ),
+        
         body: IndexedStack(index: _selectedIndex, children: _pages),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
@@ -86,7 +88,10 @@ class _MainNavigationBarState extends State<MainNavigationBar> {
             ),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
           ],
+
           currentIndex: _selectedIndex,
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold,),
+          selectedIconTheme: const IconThemeData(size: 30,),
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.black,
           onTap: _onItemTapped,

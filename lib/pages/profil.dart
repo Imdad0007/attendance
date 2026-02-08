@@ -5,6 +5,6 @@ class Profil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Contenu du profil'));
+    return const Center(child: Text('Contenu de l\'historique'));
   }
 }

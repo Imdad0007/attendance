@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:app/composants/colors.dart';
-import 'package:app/composants/text_field.dart';
-import 'package:app/pages/main_navigation_bar.dart';
-import 'package:app/composants/button.dart';
+import 'package:provider/provider.dart';
+import 'package:attendance/composants/colors.dart';
+import 'package:attendance/composants/text_field.dart';
+import 'package:attendance/pages/main_navigation_bar.dart';
+import 'package:attendance/composants/button.dart';
+import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +17,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -22,11 +27,83 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const MainNavigationBar()),
-    );
+  Future<void> _handleLogin() async {
+    if (_isLoading) return;
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Veuillez remplir tous les champs."),
+          backgroundColor: AppColors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authResult = await _authService.signIn(username, password);
+
+      if (!mounted) return;
+
+      // Cas de succes
+      if (authResult.user != null) {
+        // Set the user in the provider
+        Provider.of<UserProvider>(context, listen: false).setUser(authResult.user!);
+        
+        // Naviguer vers l'ecran principale
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavigationBar()),
+        );
+        return;
+      }
+
+      // Error case
+      String? errorMessage;
+      Color errorColor = AppColors.red;
+
+      switch (authResult.status) {
+        case AuthStatus.invalidCredentials:
+          errorMessage = "Nom d'utilisateur ou mot de passe incorrect.";
+          break;
+        case AuthStatus.noInternet:
+          errorMessage = "Connexion impossible. Vérifiez votre réseau.";
+          errorColor = AppColors.orange;
+          break;
+        default: 
+          errorMessage = "Une erreur inattendue est survenue.";
+          break;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: errorColor,
+        ),
+      );
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Une erreur technique est survenue."),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -97,7 +174,9 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
 
                   // Bouton de connexion
-                  Button(label: "Se connecter", onPressed: _handleLogin),
+                  _isLoading
+                      ? Button(label: "Connexion...", onPressed: null)
+                      : Button(label: "Se connecter", onPressed: _handleLogin),
 
                   const SizedBox(height: 20),
                 ],

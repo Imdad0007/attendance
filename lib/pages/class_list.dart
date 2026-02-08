@@ -1,56 +1,225 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:app/composants/colors.dart';
-import 'package:app/composants/button.dart';
+import 'package:attendance/composants/colors.dart';
+import 'package:attendance/composants/button.dart';
+import 'package:provider/provider.dart';
+import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:attendance/services/whatsapp_service.dart';
+import 'package:intl/intl.dart';
 
 class ClassList extends StatefulWidget {
-  const ClassList({super.key});
+  final List<Map<String, dynamic>> students;
+  final int idEcue;
+  final TimeOfDay heureDebut;
+  final TimeOfDay heureFin;
+  final String niveauLabel;
+  final String filiereLabel;
+  final String coursLabel;
+
+  const ClassList({
+    super.key,
+    required this.students,
+    required this.idEcue,
+    required this.heureDebut,
+    required this.heureFin,
+    required this.niveauLabel,
+    required this.filiereLabel,
+    required this.coursLabel,
+  });
 
   @override
   State<ClassList> createState() => _ClassListState();
 }
 
 class _ClassListState extends State<ClassList> {
-  final List<Map<String, dynamic>> students = [
-    {
-      "nom": "DAH-NDOLOSSE",
-      "prenom": "Bongo Jean François-Xavier",
-      "isAbsent": false,
-    },
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-    {"nom": "ALI", "prenom": "Bongo", "isAbsent": false},
-  ];
+  late List<Map<String, dynamic>> students;
 
+  final TextEditingController _passwordController = TextEditingController();
   bool showConfirmDialog = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the local 'students' state with the passed data and add the 'isAbsent' flag.
+    students = widget.students.map((s) => {...s, 'isAbsent': false}).toList();
+  }
 
   void toggleDialog() {
     setState(() {
       showConfirmDialog = !showConfirmDialog;
     });
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Fonction pour afficher le dialogue de confirmation de mot de passe
+  void _showPasswordVerification(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final authService = AuthService();
+        final supabase = Supabase.instance.client;
+
+        return AlertDialog(
+          title: const Text("Vérification requise"),
+          content: TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              hintText: "Entrez votre mot de passe",
+              // labelText: "Mot de passe",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _passwordController.clear();
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("Annuler"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+                final dialogNavigator = Navigator.of(dialogContext);
+
+                final String? username = userProvider.user?.username;
+
+                if (username == null) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text("Utilisateur non trouvé"),
+                        backgroundColor: AppColors.red),
+                  );
+                  dialogNavigator.pop();
+                  return;
+                }
+
+                final AuthResult result = await authService.signIn(
+                  username,
+                  _passwordController.text,
+                );
+
+                if (!mounted) return;
+
+                if (result.status == AuthStatus.onlineSuccess) {
+
+                  try {
+                    // --- Data Insertion Logic ---
+                    final idSurveillant = userProvider.user!.idSurveillant;
+                    final heureDebutStr = '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
+                    final heureFinStr = '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
+                    final now = DateTime.now();
+                    final dateSeanceStr = now.toIso8601String();
+                    // final heurePresenceStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+                    // 1. Inserer dans seance et recuperer l'id de la seance créée
+                    final seanceResponse = await supabase
+                        .from('seance')
+                        .insert({
+                          'id_ecue': widget.idEcue,
+                          'id_surveillant': idSurveillant,
+                          'heure_debut': heureDebutStr,
+                          'heure_fin': heureFinStr,
+                          'date_seance': dateSeanceStr,
+                          // 'heure_presence': heurePresenceStr,  // Le champ est défini sur Default
+                        })
+                        .select('id_seance')
+                        .single();
+
+                    final idSeance = seanceResponse['id_seance'];
+
+                    // 2. Preparer l'insertion dans presence
+                    final presenceData = students.map((student) {
+                      return {
+                        'id_seance': idSeance,
+                        'matricule': student['matricule'],
+                        'statut': student['isAbsent'] ? 'absent' : 'present',
+                      };
+                    }).toList();
+
+                    // 3. Insertion dans presence
+                    await supabase.from('presence').insert(presenceData);
+
+                    // 4. Envoyer les notifications d'absence aux parents via WhatsApp
+                    final sessionDate = DateFormat('dd/MM/yyyy').format(now);
+                    final coursehour = '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
+                                      '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+
+                    for (final student in students) {
+                      if (student['isAbsent'] && student['parentPhoneNumber'] != 'N/A') {
+                        // Background task: fire and forget, or handle success/failure as needed
+                        WhatsAppService.sendAbsenceTemplate(
+                          phone: student['parentPhoneNumber'] as String,
+                          studentName: '${student['nom']} ${student['prenom']}',
+                          dateAbsence: sessionDate,
+                          courseName: widget.coursLabel, 
+                          coursehour: coursehour,
+                        ).then((success) {
+                          if (success) {
+                            debugPrint("WhatsApp message sent successfully for ${student['nom']}");
+                          } else {
+                            debugPrint("Failed to send WhatsApp message for ${student['nom']}");
+                          }
+                        }).catchError((e) {
+                          debugPrint("Error sending WhatsApp message for ${student['nom']}: $e");
+                        });
+                      }
+                    }
+
+                    // --- UI Feedback ---
+                    dialogNavigator.pop();
+                    toggleDialog();
+                    _passwordController.clear();
+
+                    messenger
+                        .showSnackBar(
+                          const SnackBar(
+                              content: Text("Enregistrement validé !", style: TextStyle(color: AppColors.black),),
+                              backgroundColor: AppColors.green),
+                        )
+                        .closed
+                        .then((_) {
+                      navigator.pop(); // Pop the ClassList page
+                    });
+
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                          content: Text("Erreur d'enregistrement: $e"),
+                          backgroundColor: AppColors.red),
+                    );
+                  }
+
+                } else if (result.status == AuthStatus.invalidCredentials) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text("Mot de passe incorrect"),
+                        backgroundColor: AppColors.red),
+                  );
+                } else {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text("Erreur de connexion"),
+                        backgroundColor: AppColors.red),
+                  );
+                }
+              },
+              child: const Text("Valider"),
+
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -61,10 +230,8 @@ class _ClassListState extends State<ClassList> {
       body: SafeArea(
         child: Stack(
           children: [
-            // --- COUCHE 1 : Contenu Principal ---
             Column(
               children: [
-                // const SizedBox(height: 8),
                 _header(),
                 _tableHead(),
                 Expanded(
@@ -87,15 +254,12 @@ class _ClassListState extends State<ClassList> {
               ],
             ),
 
-            // --- COUCHE 2 : Le Dialogue (Overlay) ---
             if (showConfirmDialog) _confirm(),
           ],
         ),
       ),
     );
   }
-
-  // --- WIDGETS DE LA LISTE ---
 
   Widget _header() {
     return Container(
@@ -105,20 +269,29 @@ class _ClassListState extends State<ClassList> {
         border: Border(bottom: BorderSide(color: AppColors.grey, width: 1.5)),
       ),
       child: Row(
-        children: const [
-          Text(
-            " Niveau ",
-            style: TextStyle(color: AppColors.grey, fontSize: 16),
+        children: [
+          Flexible(
+            child: Text(
+              widget.niveauLabel,
+              style: const TextStyle(color: AppColors.white, fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          Icon(Icons.chevron_right, size: 20, color: AppColors.white),
-          Text(
-            " Filière ",
-            style: TextStyle(color: AppColors.grey, fontSize: 16),
+          const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
+          Flexible(
+            child: Text(
+              widget.filiereLabel,
+              style: const TextStyle(color: AppColors.white, fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          Icon(Icons.chevron_right, size: 20, color: AppColors.white),
-          Text(
-            " Cours ",
-            style: TextStyle(color: AppColors.grey, fontSize: 16),
+          const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
+          Flexible(
+            child: Text(
+              widget.coursLabel,
+              style: const TextStyle(color: AppColors.white, fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -304,6 +477,7 @@ class _ClassListState extends State<ClassList> {
                     children: [
                       _dialogButton("Confirmer", Icons.check, () {
                         // ACTION CONFIRMER
+                        _showPasswordVerification(context); // Appelle le dialogue de vérification
                       }),
                       _dialogButton("Annuler", Icons.cancel, () {
                         toggleDialog(); // ACTION ANNULER
@@ -326,7 +500,7 @@ class _ClassListState extends State<ClassList> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 74, 138, 202),
+          color: AppColors.blue,
           borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
         child: Row(
