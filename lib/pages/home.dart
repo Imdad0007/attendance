@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:app/composants/colors.dart';
+import 'package:attendance/composants/colors.dart';
 import 'package:intl/intl.dart';
+import 'package:attendance/providers/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onStartCall; // Callback pour changer d'onglet
 
   const HomePage({super.key, required this.onStartCall});
 
-  final String surveillantNom = "Basile Le Grand";
 
   String get todayDate {
     final now = DateTime.now();
@@ -23,6 +24,15 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    // 1. Accéder au UserProvider
+    final userProvider = Provider.of<UserProvider>(context);
+
+    // 2. Utiliser les données de l'utilisateur
+    // On utilise 'user?.nomComplet' pour éviter une erreur si l'utilisateur est null.
+    final String nomSurveillant = userProvider.user?.nomComplet ?? 'Utilisateur non connecté';
+
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -34,6 +44,7 @@ class HomePage extends StatelessWidget {
             child: Text(
             "Aujourd’hui : $todayDate",
             style: const TextStyle(
+              fontFamily: 'JetBrainsMono',
               color: Color.fromARGB(255, 125, 125, 125),
               fontSize: 18,
             ),
@@ -42,13 +53,13 @@ class HomePage extends StatelessWidget {
 
           const SizedBox(height: 90),
           Center(
-            child: const Text("Bienvenue,", style: TextStyle(fontSize: 25)),
+            child: const Text("Bienvenue,", style: TextStyle(fontSize: 25,)),
           ),
           const SizedBox(height: 10),
           
           Center(
             child: Text(
-            "M/Mme. $surveillantNom",
+            "M/Mme. $nomSurveillant",
             style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
           ),
           ),
@@ -81,7 +92,7 @@ class HomePage extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.check_circle_outline,
-                        color: Colors.white,
+                        color: AppColors.white,
                         size: 32,
                       ),
                       SizedBox(width: 16),
@@ -89,7 +100,7 @@ class HomePage extends StatelessWidget {
                         child: Text(
                           "Démarrer l’appel",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -97,7 +108,7 @@ class HomePage extends StatelessWidget {
                       ),
                       Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.white,
+                        color: AppColors.white,
                         size: 18,
                       ),
                     ],
