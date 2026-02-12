@@ -36,7 +36,7 @@ class HomePage extends StatelessWidget {
 
             // ================= DATE =================
             Text(
-              "$todayDate",
+              todayDate,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'JetBrainsMono',
