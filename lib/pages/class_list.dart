@@ -260,7 +260,8 @@ class _ClassListState extends State<ClassList> {
                             content: Text(
                                 "Enregistrement validé !",
                                 style: TextStyle(
-                                    color: AppColors.black)),
+                                    color: AppColors.black,
+                                    fontSize: 16,)),
                             backgroundColor: AppColors.green,
                           ),
                         )
@@ -272,7 +273,7 @@ class _ClassListState extends State<ClassList> {
                     messenger.showSnackBar(
                       SnackBar(
                         content:
-                            Text("Erreur d'enregistrement: $e"),
+                            Text("Erreur d'enregistrement", style: TextStyle(fontSize: 16),),
                         backgroundColor: AppColors.red,
                       ),
                     );
@@ -281,14 +282,14 @@ class _ClassListState extends State<ClassList> {
                     AuthStatus.invalidCredentials) {
                   messenger.showSnackBar(
                     const SnackBar(
-                      content: Text("Mot de passe incorrect"),
+                      content: Text("Mot de passe incorrect", style: TextStyle(fontSize: 16),),
                       backgroundColor: AppColors.red,
                     ),
                   );
                 } else {
                   messenger.showSnackBar(
                     const SnackBar(
-                      content: Text("Erreur de connexion"),
+                      content: Text("Erreur de connexion", style: TextStyle(fontSize: 16),),
                       backgroundColor: AppColors.red,
                     ),
                   );
