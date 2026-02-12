@@ -5,7 +5,6 @@ import 'package:attendance/pages/class_list.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
 
-
 class Presence extends StatefulWidget {
   const Presence({super.key});
 
@@ -43,12 +42,18 @@ class _PresenceState extends State<Presence> {
 
   Future<void> _fetchNiveaux() async {
     try {
-      final response = await _supabase.from('niveau').select('id_niveau, libelle');
+      final response = await _supabase
+          .from('niveau')
+          .select('id_niveau, libelle');
       setState(() {
-        niveaux = (response as List).map((item) => {
-          'id_niveau': item['id_niveau'],
-          'libelle': item['libelle']
-        }).toList();
+        niveaux = (response as List)
+            .map(
+              (item) => {
+                'id_niveau': item['id_niveau'],
+                'libelle': item['libelle'],
+              },
+            )
+            .toList();
         isLoadingNiveaux = false;
       });
     } catch (e) {
@@ -56,15 +61,18 @@ class _PresenceState extends State<Presence> {
       setState(() {
         isLoadingNiveaux = false;
       });
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Erreur de chargement des niveaux"), // content: Text("Erreur de chargement des niveaux: $e"),
-          backgroundColor: AppColors.red,
-        ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Erreur de chargement des niveaux",
+            ), // content: Text("Erreur de chargement des niveaux: $e"),
+            backgroundColor: AppColors.red,
+          ),
+        );
       }
     }
   }
-  
 
   Future<void> _fetchFilieres(int idNiveau) async {
     try {
@@ -75,10 +83,14 @@ class _PresenceState extends State<Presence> {
           .eq('id_niveau', idNiveau);
 
       // Dans _fetchFilieres
-      final data = (response as List).map((item) => {
-        'id_filiere': item['id_filiere'],
-        'nom_filiere': item['filiere']['nom_filiere'],
-      }).toList();
+      final data = (response as List)
+          .map(
+            (item) => {
+              'id_filiere': item['id_filiere'],
+              'nom_filiere': item['filiere']['nom_filiere'],
+            },
+          )
+          .toList();
 
       setState(() {
         filieres = data; // Assigner ici
@@ -89,34 +101,35 @@ class _PresenceState extends State<Presence> {
       setState(() {
         isLoadingFilieres = false;
       });
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Erreur de chargement des filières"),
-          backgroundColor: AppColors.red,
-        ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur de chargement des filières"),
+            backgroundColor: AppColors.red,
+          ),
+        );
       }
     }
   }
 
   Future<void> _fetchClasse(int idNiveau, int idFiliere) async {
-  try {
-    final response = await _supabase
-        .from('classe')
-        .select('id_classe')
-        .eq('id_niveau', idNiveau)
-        .eq('id_filiere', idFiliere)
-        .maybeSingle(); // maybeSingle évite une exception si rien n'est trouvé
+    try {
+      final response = await _supabase
+          .from('classe')
+          .select('id_classe')
+          .eq('id_niveau', idNiveau)
+          .eq('id_filiere', idFiliere)
+          .maybeSingle(); // maybeSingle évite une exception si rien n'est trouvé
 
-    if (response != null) {
-      setState(() {
-        selectedClasse = response['id_classe'];
-      });
+      if (response != null) {
+        setState(() {
+          selectedClasse = response['id_classe'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur fetchClasse: $e");
     }
-  } catch (e) {
-    debugPrint("Erreur fetchClasse: $e");
   }
-}
-
 
   Future<void> _fetchCours(int idClasse) async {
     try {
@@ -127,8 +140,12 @@ class _PresenceState extends State<Presence> {
 
       setState(() {
         cours = (response as List)
-            .map((item) =>
-                {'id_ecue': item['id_ecue'], 'intitule_ecue': item['intitule_ecue']})
+            .map(
+              (item) => {
+                'id_ecue': item['id_ecue'],
+                'intitule_ecue': item['intitule_ecue'],
+              },
+            )
             .toList();
         isLoadingCours = false;
       });
@@ -137,16 +154,18 @@ class _PresenceState extends State<Presence> {
       setState(() {
         isLoadingCours = false;
       });
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Erreur de chargement des cours"),
-          backgroundColor: AppColors.red,
-        ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur de chargement des cours"),
+            backgroundColor: AppColors.red,
+          ),
+        );
       }
     }
   }
 
-// Formate l'heure manuellement pour éviter le "AM/PM"
+  // Formate l'heure manuellement pour éviter le "AM/PM"
   String _formatTime(TimeOfDay? time) {
     if (time == null) return "00:00";
     final hours = time.hour.toString().padLeft(2, '0');
@@ -154,18 +173,19 @@ class _PresenceState extends State<Presence> {
     return "$hours:$minutes";
   }
 
-
   String getCurrentAcademicYear() {
     final now = DateTime.now();
     final currentYear = now.year;
     final currentMonth = now.month;
 
     // Academic year typically starts in September (month 9)
-    if (currentMonth >= 9) { // September to December
-        return '$currentYear-${currentYear + 1}';
-      } else { // January to July
-        return '${currentYear - 1}-$currentYear';
-      }
+    if (currentMonth >= 9) {
+      // September to December
+      return '$currentYear-${currentYear + 1}';
+    } else {
+      // January to July
+      return '${currentYear - 1}-$currentYear';
+    }
   }
 
   bool get _isFormValid =>
@@ -174,7 +194,7 @@ class _PresenceState extends State<Presence> {
       selectedCours != null &&
       heureDebut != null &&
       heureFin != null;
-  
+
   void _resetFields() {
     setState(() {
       selectedNiveau = null;
@@ -289,7 +309,7 @@ class _PresenceState extends State<Presence> {
                               child: Text(filiere['nom_filiere']),
                             );
                           }).toList(),
-                          onChanged: (val) async { 
+                          onChanged: (val) async {
                             if (val == null) return;
 
                             // 1. Mise à jour immédiate de l'UI
@@ -297,13 +317,13 @@ class _PresenceState extends State<Presence> {
                               selectedFiliere = val;
                               selectedCours = null;
                               cours = [];
-                              isLoadingCours = true; 
+                              isLoadingCours = true;
                             });
 
                             // 2. Appels asynchrones en dehors du setState
                             try {
                               await _fetchClasse(selectedNiveau!, val);
-                              
+
                               if (selectedClasse != null) {
                                 await _fetchCours(selectedClasse!);
                               }
@@ -333,7 +353,8 @@ class _PresenceState extends State<Presence> {
                               child: Text(c['intitule_ecue']),
                             );
                           }).toList(),
-                          onChanged: (val) => setState(() => selectedCours = val),
+                          onChanged: (val) =>
+                              setState(() => selectedCours = val),
                         ),
 
                       if (selectedCours != null) ...[
@@ -367,13 +388,13 @@ class _PresenceState extends State<Presence> {
 
     try {
       final response = await _supabase
-        .from('inscription')
-        .select('id_inscription, matricule, etudiant(nom, prenom)')
-        .eq('id_classe', selectedClasse!)
-        .eq('annee_acad', getCurrentAcademicYear())
-        // On ordonne d'abord par le nom de l'étudiant, puis par son prénom
-        .order('etudiant(nom)', ascending: true)
-        .order('etudiant(prenom)', ascending: true);
+          .from('inscription')
+          .select('id_inscription, matricule, etudiant(nom, prenom)')
+          .eq('id_classe', selectedClasse!)
+          .eq('annee_acad', getCurrentAcademicYear())
+          // On ordonne d'abord par le nom de l'étudiant, puis par son prénom
+          .order('etudiant(nom)', ascending: true)
+          .order('etudiant(prenom)', ascending: true);
 
       final studentList = (response as List).map((item) {
         return {
@@ -385,12 +406,16 @@ class _PresenceState extends State<Presence> {
       }).toList();
 
       // 1. Extract matricules
-      final List<String> studentMatricules = studentList.map((s) => s['matricule'] as String).toList();
+      final List<String> studentMatricules = studentList
+          .map((s) => s['matricule'] as String)
+          .toList();
 
       // 2. Query etudiant_parent and parent tables for these matricules
       final parentResponse = await _supabase
           .from('etudiant_parent')
-          .select('matricule, parent(telephone)') // Select matricule from etudiant_parent, and telephone from parent via join
+          .select(
+            'matricule, parent(telephone)',
+          ) // Select matricule from etudiant_parent, and telephone from parent via join
           .filter('matricule', 'in', studentMatricules);
 
       // 3. Create a map from matricule to parentPhoneNumber
@@ -398,31 +423,43 @@ class _PresenceState extends State<Presence> {
       for (final record in (parentResponse as List<Map<String, dynamic>>)) {
         final String matricule = record['matricule'] as String;
         // Access telephone from the nested 'parent' object
-        final String telephone = (record['parent'] as Map<String, dynamic>)['telephone'] as String; 
+        final String telephone =
+            (record['parent'] as Map<String, dynamic>)['telephone'] as String;
         if (!parentPhones.containsKey(matricule)) {
           parentPhones[matricule] = telephone;
         }
       }
 
       // 4. Add parentPhoneNumber to studentList
-      final List<Map<String, dynamic>> studentsWithParentInfo = studentList.map((student) {
-        return {
-          ...student,
-          'parentPhoneNumber': parentPhones[student['matricule']] ?? 'N/A', // Add parent phone number
-        };
-      }).toList();
+      final List<Map<String, dynamic>> studentsWithParentInfo = studentList.map(
+        (student) {
+          return {
+            ...student,
+            'parentPhoneNumber':
+                parentPhones[student['matricule']] ??
+                'N/A', // Add parent phone number
+          };
+        },
+      ).toList();
 
       // Find the labels for the header
-      final niveauLabel = niveaux.firstWhere((n) => n['id_niveau'] == selectedNiveau)['libelle'];
-      final filiereLabel = filieres.firstWhere((f) => f['id_filiere'] == selectedFiliere)['nom_filiere'];
-      final coursLabel = cours.firstWhere((c) => c['id_ecue'] == selectedCours)['intitule_ecue'];
+      final niveauLabel = niveaux.firstWhere(
+        (n) => n['id_niveau'] == selectedNiveau,
+      )['libelle'];
+      final filiereLabel = filieres.firstWhere(
+        (f) => f['id_filiere'] == selectedFiliere,
+      )['nom_filiere'];
+      final coursLabel = cours.firstWhere(
+        (c) => c['id_ecue'] == selectedCours,
+      )['intitule_ecue'];
 
       if (!mounted) return;
 
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ClassList(  // Appel de ClassList
+          builder: (context) => ClassList(
+            // Appel de ClassList
             students: studentsWithParentInfo,
             idEcue: selectedCours!,
             heureDebut: heureDebut!,
@@ -434,13 +471,14 @@ class _PresenceState extends State<Presence> {
         ),
       );
       _resetFields();
-
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Erreur lors de la récupération des étudiants"),
-        backgroundColor: AppColors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Erreur lors de la récupération des étudiants"),
+          backgroundColor: AppColors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {

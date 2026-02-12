@@ -1,15 +1,10 @@
 import 'dart:io';
 import 'package:attendance/models/surveillant.dart';
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 
-enum AuthStatus {
-  onlineSuccess,
-  invalidCredentials,
-  noInternet,
-  unknownError,
-}
+enum AuthStatus { onlineSuccess, invalidCredentials, noInternet, unknownError }
 
 class AuthResult {
   final AuthStatus status;
@@ -25,7 +20,7 @@ class AuthService {
     try {
       final response = await _supabase
           .from('surveillant')
-          .select() 
+          .select()
           .eq('username', username)
           .eq('mdp', password)
           .single();
@@ -33,7 +28,6 @@ class AuthService {
       final user = Surveillant.fromMap(response);
 
       return AuthResult(status: AuthStatus.onlineSuccess, user: user);
-
     } catch (e) {
       debugPrint("AuthService sign-in caught exception: ${e.runtimeType} - $e");
       if (e is PostgrestException) {
@@ -46,5 +40,4 @@ class AuthService {
       return AuthResult(status: AuthStatus.unknownError);
     }
   }
-
 }

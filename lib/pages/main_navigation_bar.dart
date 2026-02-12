@@ -73,7 +73,7 @@ class _MainNavigationBarState extends State<MainNavigationBar> {
             ),
           ),
         ),
-        
+
         body: IndexedStack(index: _selectedIndex, children: _pages),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
@@ -90,8 +90,8 @@ class _MainNavigationBarState extends State<MainNavigationBar> {
           ],
 
           currentIndex: _selectedIndex,
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold,),
-          selectedIconTheme: const IconThemeData(size: 30,),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          selectedIconTheme: const IconThemeData(size: 30),
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.black,
           onTap: _onItemTapped,

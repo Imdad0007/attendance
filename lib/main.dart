@@ -12,7 +12,8 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://fkvybbyrbktpetdyqymt.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdnliYnlyYmt0cGV0ZHlxeW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMTMwMTIsImV4cCI6MjA4NTY4OTAxMn0.W_5TT4lmAGoCck61kP36xJDRJSsLl5HOpITvRGEiwmA',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdnliYnlyYmt0cGV0ZHlxeW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMTMwMTIsImV4cCI6MjA4NTY4OTAxMn0.W_5TT4lmAGoCck61kP36xJDRJSsLl5HOpITvRGEiwmA',
   );
 
   usePathUrlStrategy();
@@ -20,10 +21,7 @@ void main() async {
   await initializeDateFormatting('fr_FR', null);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => UserProvider(),
-      child: const MyApp(),
-    ),
+    ChangeNotifierProvider(create: (_) => UserProvider(), child: const MyApp()),
   );
 }
 

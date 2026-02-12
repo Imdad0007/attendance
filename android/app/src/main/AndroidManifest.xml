@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="Attendance"
         android:name="${applicationName}"
@@ -35,7 +37,6 @@
                 android:host="login-callback" />
             </intent-filter>
 
-            <uses-permission android:name="android.permission.INTERNET" />
 
         </activity>
         <!-- Don't delete the meta-data below.

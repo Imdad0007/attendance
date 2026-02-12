@@ -19,7 +19,7 @@ class Surveillant {
     return Surveillant(
       idSurveillant: map['id_surveillant'] as int? ?? 0,
       nom: map['nom'] as String? ?? '',
-      prenom: map['prenom'] as String? ?? '', 
+      prenom: map['prenom'] as String? ?? '',
       telephone: map['telephone'] as String?,
       username: map['username'] as String? ?? '',
     );

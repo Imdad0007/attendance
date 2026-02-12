@@ -40,7 +40,9 @@ class DropdownField<T> extends StatelessWidget {
             ),
             isExpanded: true,
             borderRadius: BorderRadius.circular(20),
-            icon: disabled ? const SizedBox.shrink() : const Icon(Icons.keyboard_arrow_down),
+            icon: disabled
+                ? const SizedBox.shrink()
+                : const Icon(Icons.keyboard_arrow_down),
             items: items,
             onChanged: disabled ? null : onChanged,
           ),
@@ -49,4 +51,3 @@ class DropdownField<T> extends StatelessWidget {
     );
   }
 }
-

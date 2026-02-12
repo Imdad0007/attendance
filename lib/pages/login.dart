@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Veuillez remplir tous les champs."),
+          content: Text("Veuillez remplir tous les champs.", style: TextStyle(fontSize: 16),),
           backgroundColor: AppColors.orange,
         ),
       );
@@ -55,8 +55,11 @@ class _LoginPageState extends State<LoginPage> {
       // Cas de succes
       if (authResult.user != null) {
         // Set the user in the provider
-        Provider.of<UserProvider>(context, listen: false).setUser(authResult.user!);
-        
+        Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).setUser(authResult.user!);
+
         // Naviguer vers l'ecran principale
         Navigator.pushReplacement(
           context,
@@ -77,23 +80,19 @@ class _LoginPageState extends State<LoginPage> {
           errorMessage = "Connexion impossible. Vérifiez votre réseau.";
           errorColor = AppColors.orange;
           break;
-        default: 
+        default:
           errorMessage = "Une erreur inattendue est survenue.";
           break;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: errorColor,
-        ),
+        SnackBar(content: Text(errorMessage, style: TextStyle(fontSize: 16),), backgroundColor: errorColor),
       );
-
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Une erreur technique est survenue."),
+          content: Text("Une erreur technique est survenue.", style: TextStyle(fontSize: 16),),
           backgroundColor: AppColors.red,
         ),
       );

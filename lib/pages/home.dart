@@ -5,11 +5,11 @@ import 'package:attendance/providers/user_provider.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatelessWidget {
-  final VoidCallback onStartCall; // Callback pour changer d'onglet
+  final VoidCallback onStartCall;
 
   const HomePage({super.key, required this.onStartCall});
 
-
+  // ================= DATE FORMATTEE =================
   String get todayDate {
     final now = DateTime.now();
     final date = DateFormat("EEEE d MMMM y", "fr_FR").format(now);
@@ -24,101 +24,104 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    // 1. Accéder au UserProvider
     final userProvider = Provider.of<UserProvider>(context);
+    final String nomSurveillant =
+        userProvider.user?.nomComplet ?? 'Utilisateur non connecté';
 
-    // 2. Utiliser les données de l'utilisateur
-    // On utilise 'user?.nomComplet' pour éviter une erreur si l'utilisateur est null.
-    final String nomSurveillant = userProvider.user?.nomComplet ?? 'Utilisateur non connecté';
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+        child: Column(
+          children: [
 
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-
-          Center(
-            child: Text(
-            "Aujourd’hui : $todayDate",
-            style: const TextStyle(
-              fontFamily: 'JetBrainsMono',
-              color: Color.fromARGB(255, 125, 125, 125),
-              fontSize: 18,
+            // ================= DATE =================
+            Text(
+              "$todayDate",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'JetBrainsMono',
+                fontSize: 18,
+                color: Color.fromARGB(255, 125, 125, 125),
+              ),
             ),
-          ),
-          ),
 
-          const SizedBox(height: 90),
-          Center(
-            child: const Text("Bienvenue,", style: TextStyle(fontSize: 25,)),
-          ),
-          const SizedBox(height: 10),
-          
-          Center(
-            child: Text(
-            "M/Mme. $nomSurveillant",
-            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-          ),
-          ),
+            const SizedBox(height: 60),
 
-          const SizedBox(height: 40),
+            // ================= BIENVENUE =================
+            const Text(
+              "Bienvenue,",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+              ),
+            ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-          Center(
-            child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: GestureDetector(
-              onTap:
-                  onStartCall, // Déclenche le changement d'onglet vers Presence
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 24,
-                    horizontal: 20,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: AppColors.secondaryGradient,
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        color: AppColors.white,
-                        size: 32,
+            // ================= NOM =================
+            Text(
+              "M/Mme. $nomSurveillant",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 70),
+
+            // ================= ACTION =================
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: GestureDetector(
+                  onTap: onStartCall,
+                  child: Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 28,
+                        horizontal: 22,
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          "Démarrer l’appel",
-                          style: TextStyle(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: AppColors.secondaryGradient,
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.play_circle_outline,
                             color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                            size: 38,
                           ),
-                        ),
+                          SizedBox(width: 18),
+                          Expanded(
+                            child: Text(
+                              "Démarrer l’appel",
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: AppColors.white,
+                            size: 18,
+                          ),
+                        ],
                       ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        color: AppColors.white,
-                        size: 18,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          )
-        ],
+          ],
+        ),
       ),
     );
   }

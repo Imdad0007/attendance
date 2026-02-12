@@ -60,44 +60,110 @@ class _ClassListState extends State<ClassList> {
 
   // Fonction pour afficher le dialogue de confirmation de mot de passe
   void _showPasswordVerification(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        final authService = AuthService();
-        final supabase = Supabase.instance.client;
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final authService = AuthService();
+      final supabase = Supabase.instance.client;
 
-        return AlertDialog(
-          title: const Text("Vérification requise"),
-          content: TextField(
-            controller: _passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              hintText: "Entrez votre mot de passe",
-              // labelText: "Mot de passe",
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+
+        // ================= TITLE =================
+        title: Row(
+          children: const [
+
+            SizedBox(width: 10),
+            Text(
+              "Vérification requise",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+          ],
+        ),
+
+        // ================= CONTENT =================
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Veuillez confirmer votre mot de passe pour valider l'enregistrement.",
+              style: TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                hintText: "Mot de passe",
+                prefixIcon: const Icon(Icons.lock),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // ================= ACTIONS =================
+        actions: [
+          SizedBox(
+            height: 42,
+            child: TextButton(
               onPressed: () {
                 _passwordController.clear();
                 Navigator.pop(dialogContext);
               },
-              child: const Text("Annuler"),
+              style: TextButton.styleFrom(           
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text("Annuler", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),),
             ),
-            ElevatedButton(
+          ),
+
+          SizedBox(
+            height: 42,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+
+              // ================= LOGIQUE METIER =================
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(context);
                 final dialogNavigator = Navigator.of(dialogContext);
 
-                final String? username = userProvider.user?.username;
+                final String? username =
+                    userProvider.user?.username;
 
                 if (username == null) {
                   messenger.showSnackBar(
                     const SnackBar(
-                        content: Text("Utilisateur non trouvé"),
-                        backgroundColor: AppColors.red),
+                      content: Text("Utilisateur non trouvé"),
+                      backgroundColor: AppColors.red,
+                    ),
                   );
                   dialogNavigator.pop();
                   return;
@@ -111,17 +177,22 @@ class _ClassListState extends State<ClassList> {
                 if (!mounted) return;
 
                 if (result.status == AuthStatus.onlineSuccess) {
-
                   try {
-                    // --- Data Insertion Logic ---
-                    final idSurveillant = userProvider.user!.idSurveillant;
-                    final heureDebutStr = '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
-                    final heureFinStr = '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
-                    final now = DateTime.now();
-                    final dateSeanceStr = now.toIso8601String();
-                    // final heurePresenceStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+                    // ====== PREPARATION ======
+                    final idSurveillant =
+                        userProvider.user!.idSurveillant;
 
-                    // 1. Inserer dans seance et recuperer l'id de la seance créée
+                    final heureDebutStr =
+                        '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
+
+                    final heureFinStr =
+                        '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
+
+                    final now = DateTime.now();
+                    final dateSeanceStr =
+                        now.toIso8601String();
+
+                    // ====== INSERT SEANCE ======
                     final seanceResponse = await supabase
                         .from('seance')
                         .insert({
@@ -130,52 +201,55 @@ class _ClassListState extends State<ClassList> {
                           'heure_debut': heureDebutStr,
                           'heure_fin': heureFinStr,
                           'date_seance': dateSeanceStr,
-                          // 'heure_presence': heurePresenceStr,  // Le champ est défini sur Default
                         })
                         .select('id_seance')
                         .single();
 
-                    final idSeance = seanceResponse['id_seance'];
+                    final idSeance =
+                        seanceResponse['id_seance'];
 
-                    // 2. Preparer l'insertion dans presence
-                    final presenceData = students.map((student) {
+                    // ====== INSERT PRESENCE ======
+                    final presenceData =
+                        students.map((student) {
                       return {
                         'id_seance': idSeance,
                         'matricule': student['matricule'],
-                        'statut': student['isAbsent'] ? 'absent' : 'present',
+                        'statut': student['isAbsent']
+                            ? 'absent'
+                            : 'present',
                       };
                     }).toList();
 
-                    // 3. Insertion dans presence
-                    await supabase.from('presence').insert(presenceData);
+                    await supabase
+                        .from('presence')
+                        .insert(presenceData);
 
-                    // 4. Envoyer les notifications d'absence aux parents via WhatsApp
-                    final sessionDate = DateFormat('dd/MM/yyyy').format(now);
-                    final coursehour = '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
-                                      '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+                    // ====== WHATSAPP ======
+                    final sessionDate =
+                        DateFormat('dd/MM/yyyy')
+                            .format(now);
+
+                    final coursehour =
+                        '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
+                        '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
 
                     for (final student in students) {
-                      if (student['isAbsent'] && student['parentPhoneNumber'] != 'N/A') {
-                        // Background task: fire and forget, or handle success/failure as needed
-                        WhatsAppService.sendAbsenceTemplate(
-                          phone: student['parentPhoneNumber'] as String,
-                          studentName: '${student['nom']} ${student['prenom']}',
+                      if (student['isAbsent'] &&
+                          student['parentPhoneNumber'] !=
+                              'N/A') {
+                        WhatsAppService
+                            .sendAbsenceTemplate(
+                          phone: student['parentPhoneNumber'],
+                          studentName:
+                              '${student['nom']} ${student['prenom']}',
                           dateAbsence: sessionDate,
-                          courseName: widget.coursLabel, 
+                          courseName: widget.coursLabel,
                           coursehour: coursehour,
-                        ).then((success) {
-                          if (success) {
-                            debugPrint("WhatsApp message sent successfully for ${student['nom']}");
-                          } else {
-                            debugPrint("Failed to send WhatsApp message for ${student['nom']}");
-                          }
-                        }).catchError((e) {
-                          debugPrint("Error sending WhatsApp message for ${student['nom']}: $e");
-                        });
+                        );
                       }
                     }
 
-                    // --- UI Feedback ---
+                    // ====== UI FEEDBACK ======
                     dialogNavigator.pop();
                     toggleDialog();
                     _passwordController.clear();
@@ -183,44 +257,55 @@ class _ClassListState extends State<ClassList> {
                     messenger
                         .showSnackBar(
                           const SnackBar(
-                              content: Text("Enregistrement validé !", style: TextStyle(color: AppColors.black),),
-                              backgroundColor: AppColors.green),
+                            content: Text(
+                                "Enregistrement validé !",
+                                style: TextStyle(
+                                    color: AppColors.black)),
+                            backgroundColor: AppColors.green,
+                          ),
                         )
                         .closed
                         .then((_) {
-                      navigator.pop(); // Pop the ClassList page
+                      navigator.pop();
                     });
-
                   } catch (e) {
                     messenger.showSnackBar(
                       SnackBar(
-                          content: Text("Erreur d'enregistrement: $e"),
-                          backgroundColor: AppColors.red),
+                        content:
+                            Text("Erreur d'enregistrement: $e"),
+                        backgroundColor: AppColors.red,
+                      ),
                     );
                   }
-
-                } else if (result.status == AuthStatus.invalidCredentials) {
+                } else if (result.status ==
+                    AuthStatus.invalidCredentials) {
                   messenger.showSnackBar(
                     const SnackBar(
-                        content: Text("Mot de passe incorrect"),
-                        backgroundColor: AppColors.red),
+                      content: Text("Mot de passe incorrect"),
+                      backgroundColor: AppColors.red,
+                    ),
                   );
                 } else {
                   messenger.showSnackBar(
                     const SnackBar(
-                        content: Text("Erreur de connexion"),
-                        backgroundColor: AppColors.red),
+                      content: Text("Erreur de connexion"),
+                      backgroundColor: AppColors.red,
+                    ),
                   );
                 }
               },
-              child: const Text("Valider"),
 
+              child: const Text(
+                "Valider",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.white),
+              ),
             ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +562,9 @@ class _ClassListState extends State<ClassList> {
                     children: [
                       _dialogButton("Confirmer", Icons.check, () {
                         // ACTION CONFIRMER
-                        _showPasswordVerification(context); // Appelle le dialogue de vérification
+                        _showPasswordVerification(
+                          context,
+                        ); // Appelle le dialogue de vérification
                       }),
                       _dialogButton("Annuler", Icons.cancel, () {
                         toggleDialog(); // ACTION ANNULER
