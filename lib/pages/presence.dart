@@ -193,7 +193,10 @@ class _PresenceState extends State<Presence> {
       selectedFiliere != null &&
       selectedCours != null &&
       heureDebut != null &&
-      heureFin != null;
+      heureFin != null &&
+      // Time validation: heureDebut must be strictly before heureFin
+      (heureDebut!.hour < heureFin!.hour ||
+          (heureDebut!.hour == heureFin!.hour && heureDebut!.minute < heureFin!.minute));
 
   void _resetFields() {
     setState(() {

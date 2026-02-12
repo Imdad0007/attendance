@@ -13,7 +13,8 @@ class Button extends StatelessWidget {
       // color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
+          gradient: onPressed == null ? null : AppColors.primaryGradient,
+          color: onPressed == null ? AppColors.grey : null, // Use grey when disabled
           borderRadius: BorderRadius.circular(25),
         ),
         child: InkWell(
@@ -25,8 +26,8 @@ class Button extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: onPressed == null ? AppColors.clearGrey : Colors.white, // Lighter text when disabled
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
