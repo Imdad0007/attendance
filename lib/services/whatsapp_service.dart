@@ -4,8 +4,7 @@ import 'package:http/http.dart' as http;
 
 class WhatsAppService {
   static const String phoneNumberId = "1001899229676106";
-  static const String token =
-      "EAAUfadYaUJEBQqiBQGOZBJEIVoSr9JZAHtxQzPvgAvswUfk5PZCvMKlEGc51kRhh7a3zSztZAZBD50rO9XH4XpRaziOs1nEyKLadvxe8B0cbLV6umlNXeREqUSWDUhpJYZAY41ZB5Pct0qYiEr1fhJnkTeDoFr0MK23X8VGY3c3hp0yStJH4WcxbT5GQZCCQe2fN49P5D8IXX2d0uGwIyvVosHTJr7dneuUTZCLfJxmbb";
+  static const String token = "EAAWdK9IJdl8BQq6mCZAsksvbr5fluRGmvVAWHbr2dCmYT5ZChZA1tFFjZBpRuUJ5WI6LnPCVqBeJEMuy4gVZASeQR2m1OWdOg2Jw7XZABSBjnqC6YR3eKK4hBtyPtjMIlldW1Ui0HcN1DhvI55VrpWmVlJwBY0kam2j2OOB8nZBCUKWpdadFyLK0XD9v6qiVb4n3HvtEpBHipzPcLx7el9ZAdY5q57L0BgKdH2eNF2xX8BUO1KsZBwVhnna4hJiZBabs8vKPMlqjZBWAk7UyQEDPDqhK9yh";
 
   static Future<bool> sendAbsenceTemplate({
     required String phone,
@@ -14,9 +13,10 @@ class WhatsAppService {
     required String courseName,
     required String coursehour,
   }) async {
-    final url = Uri.parse(
-      "https://graph.facebook.com/v19.0/$phoneNumberId/messages",
-    );
+    final url = Uri.parse("https://graph.facebook.com/v19.0/$phoneNumberId/messages");
+
+    // CRUCIAL : WhatsApp n'accepte pas le '+' dans le numéro de téléphone
+    final formattedPhone = phone.replaceAll('+', '').replaceAll(' ', '').trim();
 
     try {
       final response = await http.post(
@@ -27,11 +27,11 @@ class WhatsAppService {
         },
         body: jsonEncode({
           "messaging_product": "whatsapp",
-          "to": phone,
+          "to": formattedPhone,
           "type": "template",
           "template": {
             "name": "absence_notification",
-            "language": {"code": "fr_BE"},
+            "language": {"code": "fr_BE"}, 
             "components": [
               {
                 "type": "body",
@@ -48,16 +48,14 @@ class WhatsAppService {
       );
 
       if (response.statusCode == 200) {
-        debugPrint("WhatsApp message sent successfully to $phone");
+        debugPrint("WhatsApp Success: ${response.body}");
         return true;
       } else {
-        debugPrint(
-          "Failed to send WhatsApp message to $phone. Status: ${response.statusCode}, Body: ${response.body}",
-        );
+        debugPrint("WhatsApp API Error: Status ${response.statusCode} - Body: ${response.body}");
         return false;
       }
     } catch (e) {
-      debugPrint("Error sending WhatsApp message to $phone: $e");
+      debugPrint("WhatsApp Exception: $e");
       return false;
     }
   }
