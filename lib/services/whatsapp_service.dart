@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class WhatsAppService {
   static const String phoneNumberId = "1001899229676106";
-  static const String token = "EAAWdK9IJdl8BQq6mCZAsksvbr5fluRGmvVAWHbr2dCmYT5ZChZA1tFFjZBpRuUJ5WI6LnPCVqBeJEMuy4gVZASeQR2m1OWdOg2Jw7XZABSBjnqC6YR3eKK4hBtyPtjMIlldW1Ui0HcN1DhvI55VrpWmVlJwBY0kam2j2OOB8nZBCUKWpdadFyLK0XD9v6qiVb4n3HvtEpBHipzPcLx7el9ZAdY5q57L0BgKdH2eNF2xX8BUO1KsZBwVhnna4hJiZBabs8vKPMlqjZBWAk7UyQEDPDqhK9yh";
+  static const String token = "EAAWdK9IJdl8BQo1WrzXiIQCcDugIKqOopK0cvZCOxYZC9uc3Y2hVLNgEubhlxEQE0PqywPfu2atGbpP5ZB7q3umuUh1uKfuJNl5Yioojub0luqOETXFnzJ2nyrZBn2LwgdeELD2XzGb5nAB2tFzCtaN7JYgCx3oah3xKNgishUmBQrye9ORySGun3fDtY89S0gZDZD";
 
   static Future<bool> sendAbsenceTemplate({
     required String phone,
