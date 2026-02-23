@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart' as p;
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/historique_model.dart';
 import '../providers/user_provider.dart';
-
+import 'package:attendance/providers/role_provider.dart';
 
 /// ------------------------------
 /// Repository
@@ -17,23 +16,23 @@ class HistoriqueRepository {
   HistoriqueRepository(this.client);
 
   Future<List<HistoriqueModel>> fetch({
+    required bool isAdmin,
     required int surveillantId,
     int? ecueId,
     int limit = 20,
     int offset = 0,
   }) async {
-    // Appel RPC
+    // Appel RPC : si admin, on passe null pour voir tout l'historique
     final response = await client.rpc(
       'get_historique',
       params: {
-        'p_surveillant_id': surveillantId,
+        'p_surveillant_id': isAdmin ? null : surveillantId,
         'p_ecue_id': ecueId,
         'p_limit': limit,
         'p_offset': offset,
       },
     );
 
-    // En Supabase Flutter v2+, rpc() retourne directement les données.
     if (response is List) {
       return response
           .map((e) => HistoriqueModel.fromMap(e as Map<String, dynamic>))
@@ -74,28 +73,31 @@ class HistoriqueNotifier
   bool _isLoading = false;
 
   /// Chargement initial
-  Future<void> loadInitial({required int surveillantId}) async {
+  Future<void> loadInitial() async {
     state = const AsyncValue.loading();
     _items.clear();
     _offset = 0;
     _hasMore = true;
 
-    await loadMore(surveillantId: surveillantId);
+    await loadMore();
 
-    // Setup Realtime Stream
     if (_subscription == null) {
-      _setupRealtime(surveillantId);
+      _setupRealtime();
     }
   }
 
   /// Chargement avec pagination
-  Future<void> loadMore({required int surveillantId}) async {
+  Future<void> loadMore() async {
     if (_isLoading || !_hasMore) return;
     _isLoading = true;
 
     try {
+      final isAdmin = ref.read(isAdminProvider);
+      final user = ref.read(userProvider);
+
       final newData = await repository.fetch(
-        surveillantId: surveillantId,
+        isAdmin: isAdmin,
+        surveillantId: user?.idSurveillant ?? 0,
         limit: _limit,
         offset: _offset,
       );
@@ -103,39 +105,52 @@ class HistoriqueNotifier
       if (newData.length < _limit) _hasMore = false;
 
       for (var item in newData) {
-        if (!_items.any((existing) => existing.idSeance == item.idSeance)) {
+        if (!_items.any((e) => e.idSeance == item.idSeance)) {
           _items.add(item);
         }
       }
-      
+
       _offset = _items.length;
       state = AsyncValue.data(List.from(_items));
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
+
     _isLoading = false;
   }
 
   /// Configuration Realtime Supabase via Stream
-  void _setupRealtime(int surveillantId) {
+  void _setupRealtime() {
     final client = ref.read(supabaseProvider);
+    final user = ref.read(userProvider);
+    final isAdmin = ref.read(isAdminProvider);
     
-    _subscription = client
-        .from('seance')
-        .stream(primaryKey: ['id_seance'])
-        .eq('id_surveillant', surveillantId)
-        .listen((data) {
-          debugPrint('Realtime change detected via stream');
-          _refreshQuietly(surveillantId);
-        });
+    if (user == null) return;
+
+    // Supabase Stream API
+    final query = client.from('seance').stream(primaryKey: ['id_seance']);
+
+    if (!isAdmin) {
+      // Filtrage par ID surveillant si non admin
+      _subscription = query.eq('id_surveillant', user.idSurveillant).listen((data) {
+        debugPrint('Realtime: New session detected for SURVEILLANT');
+        _refreshQuietly();
+      });
+    } else {
+      // Stream global pour l'admin
+      _subscription = query.listen((data) {
+        debugPrint('Realtime: New session detected for ADMIN');
+        _refreshQuietly();
+      });
+    }
   }
 
-  Future<void> _refreshQuietly(int surveillantId) async {
+  Future<void> _refreshQuietly() async {
     if (_isLoading) return;
     _items.clear();
     _offset = 0;
     _hasMore = true;
-    await loadMore(surveillantId: surveillantId);
+    await loadMore();
   }
 
   @override
@@ -163,22 +178,16 @@ class _HistoriqueState extends ConsumerState<Historique> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final surveillantId = p.Provider.of<UserProvider>(context, listen: false).user?.idSurveillant;
-      if (surveillantId != null) {
-        ref.read(historiqueProvider.notifier).loadInitial(surveillantId: surveillantId);
-      }
+      ref.read(historiqueProvider.notifier).loadInitial();
     });
 
     _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
-    final surveillantId = p.Provider.of<UserProvider>(context, listen: false).user?.idSurveillant;
-    if (surveillantId == null) return;
-
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      ref.read(historiqueProvider.notifier).loadMore(surveillantId: surveillantId);
+      ref.read(historiqueProvider.notifier).loadMore();
     }
   }
 
@@ -204,7 +213,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
           return Column(
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 2),
+                padding: EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   'HISTORIQUE',
                   style: TextStyle(
@@ -216,14 +225,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
               ),
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: () async {
-                    final surveillantId = p.Provider.of<UserProvider>(context, listen: false).user?.idSurveillant;
-                    if (surveillantId != null) {
-                      await ref.read(historiqueProvider.notifier).loadInitial(
-                            surveillantId: surveillantId,
-                          );
-                    }
-                  },
+                  onRefresh: () => ref.read(historiqueProvider.notifier).loadInitial(),
                   child: ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),

@@ -4,6 +4,7 @@ class Surveillant {
   final String prenom;
   final String? telephone;
   final String username;
+  final String role;
 
   Surveillant({
     required this.idSurveillant,
@@ -11,6 +12,7 @@ class Surveillant {
     required this.prenom,
     this.telephone,
     required this.username,
+    required this.role,
   });
 
   String get nomComplet => '$prenom $nom';
@@ -22,6 +24,7 @@ class Surveillant {
       prenom: map['prenom'] as String? ?? '',
       telephone: map['telephone'] as String?,
       username: map['username'] as String? ?? '',
+      role: map['role'] as String? ?? '',
     );
   }
 }
