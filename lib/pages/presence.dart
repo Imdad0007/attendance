@@ -423,7 +423,7 @@ class _PresenceState extends State<Presence> {
 
       // 3. Create a map from matricule to parentPhoneNumber
       final Map<String, String> parentPhones = {};
-      for (final record in (parentResponse as List<Map<String, dynamic>>)) {
+      for (final record in parentResponse) {
         final String matricule = record['matricule'] as String;
         // Access telephone from the nested 'parent' object
         final String telephone =

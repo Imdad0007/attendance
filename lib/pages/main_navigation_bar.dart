@@ -4,15 +4,18 @@ import 'package:attendance/pages/presence.dart';
 import 'package:attendance/pages/historique.dart';
 import 'package:attendance/pages/profil.dart';
 import 'package:attendance/composants/colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as p;
+import 'package:attendance/providers/user_provider.dart';
 
-class MainNavigationBar extends StatefulWidget {
+class MainNavigationBar extends ConsumerStatefulWidget {
   const MainNavigationBar({super.key});
 
   @override
-  State<MainNavigationBar> createState() => _MainNavigationBarState();
+  ConsumerState<MainNavigationBar> createState() => _MainNavigationBarState();
 }
 
-class _MainNavigationBarState extends State<MainNavigationBar> {
+class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
   int _selectedIndex = 0;
   final List<int> _history = [0];
   late List<Widget> _pages;
@@ -31,6 +34,15 @@ class _MainNavigationBarState extends State<MainNavigationBar> {
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
+
+    // Si on clique sur l'historique (index 2), on déclenche un rafraîchissement
+    if (index == 2) {
+      final surveillantId = p.Provider.of<UserProvider>(context, listen: false).user?.idSurveillant;
+      if (surveillantId != null) {
+        ref.read(historiqueProvider.notifier).loadInitial(surveillantId: surveillantId);
+      }
+    }
+
     setState(() {
       _selectedIndex = index;
       _history.remove(index);

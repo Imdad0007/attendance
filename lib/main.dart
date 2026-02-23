@@ -1,6 +1,8 @@
 import 'package:attendance/pages/login.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
+import 'package:provider/provider.dart' as p;
+
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,7 +23,12 @@ void main() async {
   await initializeDateFormatting('fr_FR', null);
 
   runApp(
-    ChangeNotifierProvider(create: (_) => UserProvider(), child: const MyApp()),
+    rp.ProviderScope(
+      child: p.ChangeNotifierProvider(
+        create: (_) => UserProvider(),
+        child: const MyApp(),
+      ),
+    ),
   );
 }
 
