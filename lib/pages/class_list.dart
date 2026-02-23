@@ -2,14 +2,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/services/whatsapp_service.dart';
 import 'package:intl/intl.dart';
 
-class ClassList extends StatefulWidget {
+class ClassList extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> students;
   final int idEcue;
   final TimeOfDay heureDebut;
@@ -30,10 +30,10 @@ class ClassList extends StatefulWidget {
   });
 
   @override
-  State<ClassList> createState() => _ClassListState();
+  ConsumerState<ClassList> createState() => _ClassListState();
 }
 
-class _ClassListState extends State<ClassList> {
+class _ClassListState extends ConsumerState<ClassList> {
   late List<Map<String, dynamic>> students;
 
   final TextEditingController _passwordController = TextEditingController();
@@ -64,7 +64,6 @@ class _ClassListState extends State<ClassList> {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
       final authService = AuthService();
       final supabase = Supabase.instance.client;
 
@@ -156,7 +155,7 @@ class _ClassListState extends State<ClassList> {
                 final dialogNavigator = Navigator.of(dialogContext);
 
                 final String? username =
-                    userProvider.user?.username;
+                    ref.read(userProvider)?.username;
 
                 if (username == null) {
                   messenger.showSnackBar(
@@ -180,7 +179,7 @@ class _ClassListState extends State<ClassList> {
                   try {
                     // ====== PREPARATION ======
                     final idSurveillant =
-                        userProvider.user!.idSurveillant;
+                        ref.read(userProvider)!.idSurveillant;
 
                     final heureDebutStr =
                         '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';

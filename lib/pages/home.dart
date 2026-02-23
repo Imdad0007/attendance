@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:intl/intl.dart';
 import 'package:attendance/providers/user_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:attendance/providers/role_provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   final VoidCallback onStartCall;
 
   const HomePage({super.key, required this.onStartCall});
@@ -23,10 +24,12 @@ class HomePage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProvider);
+    final isAdmin = ref.watch(isAdminProvider);
+
     final String nomSurveillant =
-        userProvider.user?.nomComplet ?? 'Utilisateur non connecté';
+        user?.nomComplet ?? 'Utilisateur non connecté';
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -90,17 +93,17 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         gradient: AppColors.secondaryGradient,
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(
-                            Icons.play_circle_outline,
+                            isAdmin ? Icons.history : Icons.play_circle_outline,
                             color: AppColors.white,
                             size: 38,
                           ),
                           SizedBox(width: 18),
                           Expanded(
                             child: Text(
-                              "Démarrer l’appel",
+                             isAdmin ? "Consulter l'historique" : "Démarrer l’appel",
                               style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 20,

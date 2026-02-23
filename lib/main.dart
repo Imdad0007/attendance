@@ -1,13 +1,10 @@
 import 'package:attendance/pages/login.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
-import 'package:provider/provider.dart' as p;
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:attendance/providers/user_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +20,8 @@ void main() async {
   await initializeDateFormatting('fr_FR', null);
 
   runApp(
-    rp.ProviderScope(
-      child: p.ChangeNotifierProvider(
-        create: (_) => UserProvider(),
-        child: const MyApp(),
-      ),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }
@@ -56,3 +50,9 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+

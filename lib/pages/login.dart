@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/text_field.dart';
 import 'package:attendance/pages/main_navigation_bar.dart';
@@ -7,14 +7,14 @@ import 'package:attendance/composants/button.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
@@ -54,11 +54,8 @@ class _LoginPageState extends State<LoginPage> {
 
       // Cas de succes
       if (authResult.user != null) {
-        // Set the user in the provider
-        Provider.of<UserProvider>(
-          context,
-          listen: false,
-        ).setUser(authResult.user!);
+        // Set the user in the Riverpod provider
+        ref.read(userProvider.notifier).state = authResult.user;
 
         // Naviguer vers l'ecran principale
         Navigator.pushReplacement(
