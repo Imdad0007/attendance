@@ -288,7 +288,7 @@ class _HistoriqueCard extends StatelessWidget {
               Text("${item.nomSurveillant} ${item.prenomSurveillant}",
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(DateFormat('dd/MM/yyyy').format(item.dateSeance)),
+              Text(DateFormat('dd-MM-yyyy').format(item.dateSeance)),
             ],
           ),
           const SizedBox(height: 8),
