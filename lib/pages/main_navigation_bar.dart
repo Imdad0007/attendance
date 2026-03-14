@@ -6,7 +6,7 @@ import 'package:attendance/pages/profil.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/role_provider.dart';
-import 'package:attendance/pages/creation.dart';
+import 'package:attendance/pages/utilisateurs.dart';
 
 
 class MainNavigationBar extends ConsumerStatefulWidget {
@@ -65,7 +65,7 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
       
       if (isAdmin)
         const BottomNavigationBarItem(
-            icon: Icon(Icons.person_add_alt_1_outlined), label: 'Création'),
+            icon: Icon(Icons.person_add_alt_1_outlined), label: 'Utilisateurs'),
 
       const BottomNavigationBarItem(
           icon: Icon(Icons.account_circle), label: 'Profil'),

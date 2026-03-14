@@ -5,6 +5,6 @@ class Creation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Contenu de Creation'));
+    return const Center(child: Text('Contenu de Utilisateurs'));
   }
 }
