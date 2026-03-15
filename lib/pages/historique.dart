@@ -47,13 +47,15 @@ class HistoriqueRepository {
 /// ------------------------------
 final supabaseProvider = Provider((ref) => Supabase.instance.client);
 
-final historiqueRepositoryProvider =
-    Provider((ref) => HistoriqueRepository(ref.read(supabaseProvider)));
+final historiqueRepositoryProvider = Provider(
+  (ref) => HistoriqueRepository(ref.read(supabaseProvider)),
+);
 
 final historiqueProvider =
-    StateNotifierProvider<HistoriqueNotifier, AsyncValue<List<HistoriqueModel>>>(
-  (ref) => HistoriqueNotifier(ref.read(historiqueRepositoryProvider), ref),
-);
+    StateNotifierProvider<
+      HistoriqueNotifier,
+      AsyncValue<List<HistoriqueModel>>
+    >((ref) => HistoriqueNotifier(ref.read(historiqueRepositoryProvider), ref));
 
 /// ------------------------------
 /// Historique Notifier avec Realtime Stream
@@ -64,7 +66,8 @@ class HistoriqueNotifier
   final Ref ref;
   StreamSubscription? _subscription;
 
-  HistoriqueNotifier(this.repository, this.ref) : super(const AsyncValue.loading());
+  HistoriqueNotifier(this.repository, this.ref)
+    : super(const AsyncValue.loading());
 
   final List<HistoriqueModel> _items = [];
   int _offset = 0;
@@ -124,7 +127,7 @@ class HistoriqueNotifier
     final client = ref.read(supabaseProvider);
     final user = ref.read(userProvider);
     final isAdmin = ref.read(isAdminProvider);
-    
+
     if (user == null) return;
 
     // Supabase Stream API
@@ -132,7 +135,9 @@ class HistoriqueNotifier
 
     if (!isAdmin) {
       // Filtrage par ID surveillant si non admin
-      _subscription = query.eq('id_surveillant', user.idSurveillant).listen((data) {
+      _subscription = query.eq('id_surveillant', user.idSurveillant).listen((
+        data,
+      ) {
         debugPrint('Realtime: New session detected for SURVEILLANT');
         _refreshQuietly();
       });
@@ -225,7 +230,8 @@ class _HistoriqueState extends ConsumerState<Historique> {
               ),
               Expanded(
                 child: RefreshIndicator(
-                  onRefresh: () => ref.read(historiqueProvider.notifier).loadInitial(),
+                  onRefresh: () =>
+                      ref.read(historiqueProvider.notifier).loadInitial(),
                   child: ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
@@ -273,10 +279,7 @@ class _HistoriqueCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.08),
-            blurRadius: 8,
-          )
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -285,9 +288,13 @@ class _HistoriqueCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("${item.nomSurveillant} ${item.prenomSurveillant}",
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                "${item.nomSurveillant} ${item.prenomSurveillant}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               Text(DateFormat('dd-MM-yyyy').format(item.dateSeance)),
             ],
           ),

@@ -60,252 +60,259 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   // Fonction pour afficher le dialogue de confirmation de mot de passe
   void _showPasswordVerification(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) {
-      final authService = AuthService();
-      final supabase = Supabase.instance.client;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final authService = AuthService();
+        final supabase = Supabase.instance.client;
 
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-        contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
 
-        // ================= TITLE =================
-        title: Row(
-          children: const [
-
-            SizedBox(width: 10),
-            Text(
-              "Vérification requise",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+          // ================= TITLE =================
+          title: Row(
+            children: const [
+              SizedBox(width: 10),
+              Text(
+                "Vérification requise",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-            ),
-          ],
-        ),
-
-        // ================= CONTENT =================
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Veuillez confirmer votre mot de passe pour valider l'enregistrement.",
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: "Mot de passe",
-                prefixIcon: const Icon(Icons.lock),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        // ================= ACTIONS =================
-        actions: [
-          SizedBox(
-            height: 42,
-            child: TextButton(
-              onPressed: () {
-                _passwordController.clear();
-                Navigator.pop(dialogContext);
-              },
-              style: TextButton.styleFrom(           
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: const Text("Annuler", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),),
-            ),
+            ],
           ),
 
-          SizedBox(
-            height: 42,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+          // ================= CONTENT =================
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Veuillez confirmer votre mot de passe pour valider l'enregistrement.",
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: "Mot de passe",
+                  prefixIcon: const Icon(Icons.lock),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
+            ],
+          ),
 
-              // ================= LOGIQUE METIER =================
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-                final dialogNavigator = Navigator.of(dialogContext);
+          // ================= ACTIONS =================
+          actions: [
+            SizedBox(
+              height: 42,
+              child: TextButton(
+                onPressed: () {
+                  _passwordController.clear();
+                  Navigator.pop(dialogContext);
+                },
+                style: TextButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: const Text(
+                  "Annuler",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.black,
+                  ),
+                ),
+              ),
+            ),
 
-                final String? username =
-                    ref.read(userProvider)?.username;
+            SizedBox(
+              height: 42,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
 
-                if (username == null) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Utilisateur non trouvé"),
-                      backgroundColor: AppColors.red,
-                    ),
-                  );
-                  dialogNavigator.pop();
-                  return;
-                }
+                // ================= LOGIQUE METIER =================
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+                  final dialogNavigator = Navigator.of(dialogContext);
 
-                final AuthResult result = await authService.signIn(
-                  username,
-                  _passwordController.text,
-                );
+                  final String? username = ref.read(userProvider)?.username;
 
-                if (!mounted) return;
-
-                if (result.status == AuthStatus.onlineSuccess) {
-                  try {
-                    // ====== PREPARATION ======
-                    final idSurveillant =
-                        ref.read(userProvider)!.idSurveillant;
-
-                    final heureDebutStr =
-                        '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
-
-                    final heureFinStr =
-                        '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
-
-                    final now = DateTime.now();
-                    final dateSeanceStr =
-                        now.toIso8601String();
-
-                    // ====== INSERT SEANCE ======
-                    final seanceResponse = await supabase
-                        .from('seance')
-                        .insert({
-                          'id_ecue': widget.idEcue,
-                          'id_surveillant': idSurveillant,
-                          'heure_debut': heureDebutStr,
-                          'heure_fin': heureFinStr,
-                          'date_seance': dateSeanceStr,
-                        })
-                        .select('id_seance')
-                        .single();
-
-                    final idSeance =
-                        seanceResponse['id_seance'];
-
-                    // ====== INSERT PRESENCE ======
-                    final presenceData =
-                        students.map((student) {
-                      return {
-                        'id_seance': idSeance,
-                        'matricule': student['matricule'],
-                        'statut': student['isAbsent']
-                            ? 'absent'
-                            : 'present',
-                      };
-                    }).toList();
-
-                    await supabase
-                        .from('presence')
-                        .insert(presenceData);
-
-                    // ====== WHATSAPP ======
-                    final sessionDate =
-                        DateFormat('dd/MM/yyyy')
-                            .format(now);
-
-                    final coursehour =
-                        '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
-                        '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
-
-                    for (final student in students) {
-                      if (student['isAbsent'] &&
-                          student['parentPhoneNumber'] !=
-                              'N/A') {
-                        WhatsAppService
-                            .sendAbsenceTemplate(
-                          phone: student['parentPhoneNumber'],
-                          studentName:
-                              '${student['nom']} ${student['prenom']}',
-                          dateAbsence: sessionDate,
-                          courseName: widget.coursLabel,
-                          coursehour: coursehour,
-                        );
-                      }
-                    }
-
-                    // ====== UI FEEDBACK ======
+                  if (username == null) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text("Utilisateur non trouvé"),
+                        backgroundColor: AppColors.red,
+                      ),
+                    );
                     dialogNavigator.pop();
-                    toggleDialog();
-                    _passwordController.clear();
+                    return;
+                  }
 
-                    messenger
-                        .showSnackBar(
-                          const SnackBar(
-                            content: Text(
+                  final AuthResult result = await authService.signIn(
+                    username,
+                    _passwordController.text,
+                  );
+
+                  if (!mounted) return;
+
+                  if (result.status == AuthStatus.onlineSuccess) {
+                    try {
+                      // ====== PREPARATION ======
+                      final idSurveillant = ref
+                          .read(userProvider)!
+                          .idSurveillant;
+
+                      final heureDebutStr =
+                          '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
+
+                      final heureFinStr =
+                          '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
+
+                      final now = DateTime.now();
+                      final dateSeanceStr = now.toIso8601String();
+
+                      // ====== INSERT SEANCE ======
+                      final seanceResponse = await supabase
+                          .from('seance')
+                          .insert({
+                            'id_ecue': widget.idEcue,
+                            'id_surveillant': idSurveillant,
+                            'heure_debut': heureDebutStr,
+                            'heure_fin': heureFinStr,
+                            'date_seance': dateSeanceStr,
+                          })
+                          .select('id_seance')
+                          .single();
+
+                      final idSeance = seanceResponse['id_seance'];
+
+                      // ====== INSERT PRESENCE ======
+                      final presenceData = students.map((student) {
+                        return {
+                          'id_seance': idSeance,
+                          'matricule': student['matricule'],
+                          'statut': student['isAbsent'] ? 'absent' : 'present',
+                        };
+                      }).toList();
+
+                      await supabase.from('presence').insert(presenceData);
+
+                      // ====== WHATSAPP ======
+                      final sessionDate = DateFormat('dd/MM/yyyy').format(now);
+
+                      final coursehour =
+                          '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
+                          '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+
+                      for (final student in students) {
+                        if (student['isAbsent'] &&
+                            student['parentPhoneNumber'] != 'N/A') {
+                          WhatsAppService.sendAbsenceTemplate(
+                            phone: student['parentPhoneNumber'],
+                            studentName:
+                                '${student['nom']} ${student['prenom']}',
+                            dateAbsence: sessionDate,
+                            courseName: widget.coursLabel,
+                            coursehour: coursehour,
+                          );
+                        }
+                      }
+
+                      // ====== UI FEEDBACK ======
+                      dialogNavigator.pop();
+                      toggleDialog();
+                      _passwordController.clear();
+
+                      messenger
+                          .showSnackBar(
+                            const SnackBar(
+                              content: Text(
                                 "Enregistrement validé !",
                                 style: TextStyle(
-                                    color: AppColors.black,
-                                    fontSize: 16,)),
-                            backgroundColor: AppColors.green,
+                                  color: AppColors.black,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              backgroundColor: AppColors.green,
+                            ),
+                          )
+                          .closed
+                          .then((_) {
+                            navigator.pop();
+                          });
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Erreur d'enregistrement",
+                            style: TextStyle(fontSize: 16),
                           ),
-                        )
-                        .closed
-                        .then((_) {
-                      navigator.pop();
-                    });
-                  } catch (e) {
+                          backgroundColor: AppColors.red,
+                        ),
+                      );
+                    }
+                  } else if (result.status == AuthStatus.invalidCredentials) {
                     messenger.showSnackBar(
-                      SnackBar(
-                        content:
-                            Text("Erreur d'enregistrement", style: TextStyle(fontSize: 16),),
+                      const SnackBar(
+                        content: Text(
+                          "Mot de passe incorrect",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        backgroundColor: AppColors.red,
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Erreur de connexion",
+                          style: TextStyle(fontSize: 16),
+                        ),
                         backgroundColor: AppColors.red,
                       ),
                     );
                   }
-                } else if (result.status ==
-                    AuthStatus.invalidCredentials) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Mot de passe incorrect", style: TextStyle(fontSize: 16),),
-                      backgroundColor: AppColors.red,
-                    ),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Erreur de connexion", style: TextStyle(fontSize: 16),),
-                      backgroundColor: AppColors.red,
-                    ),
-                  );
-                }
-              },
+                },
 
-              child: const Text(
-                "Valider",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.white),
+                child: const Text(
+                  "Valider",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
-      );
-    },
-  );
-}
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

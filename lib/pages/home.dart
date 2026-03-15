@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/role_provider.dart';
+import 'package:attendance/composants/carte.dart';
 
 class HomePage extends ConsumerWidget {
   final VoidCallback onStartCall;
@@ -36,7 +37,6 @@ class HomePage extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
         child: Column(
           children: [
-
             // ================= DATE =================
             Text(
               todayDate,
@@ -54,9 +54,7 @@ class HomePage extends ConsumerWidget {
             const Text(
               "Bienvenue,",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-              ),
+              style: TextStyle(fontSize: 28),
             ),
 
             const SizedBox(height: 10),
@@ -65,10 +63,7 @@ class HomePage extends ConsumerWidget {
             Text(
               "M/Mme. $nomSurveillant",
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 70),
@@ -103,7 +98,9 @@ class HomePage extends ConsumerWidget {
                           SizedBox(width: 18),
                           Expanded(
                             child: Text(
-                             isAdmin ? "Consulter l'historique" : "Démarrer l’appel",
+                              isAdmin
+                                  ? "Consulter l'historique"
+                                  : "Démarrer l’appel",
                               style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 20,

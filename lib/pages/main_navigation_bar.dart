@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/role_provider.dart';
 import 'package:attendance/pages/utilisateurs.dart';
 
-
 class MainNavigationBar extends ConsumerStatefulWidget {
   const MainNavigationBar({super.key});
 
@@ -26,9 +25,7 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
     if (index == 2) {
       final isAdmin = ref.read(isAdminProvider);
 
-      if (isAdmin) {
-
-      } 
+      if (isAdmin) {}
     }
 
     setState(() {
@@ -45,7 +42,9 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
 
     // Pages dynamiques selon rôle
     final pages = [
-      HomePage(onStartCall: isAdmin ? () => _onItemTapped(2) : () => _onItemTapped(1)),
+      HomePage(
+        onStartCall: isAdmin ? () => _onItemTapped(2) : () => _onItemTapped(1),
+      ),
       if (isAdjoint) Presence(),
       const Historique(),
       if (isAdmin) const Creation(), // 👈 page supplémentaire
@@ -53,23 +52,29 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
     ];
 
     final navItems = [
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.home), label: 'Accueil'),
-      
+      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+
       if (isAdjoint)
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.check_circle), label: 'Presence'),
-      
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.history), label: 'Historique'),
-      
-      if (isAdmin)
         const BottomNavigationBarItem(
-            icon: Icon(Icons.person_add_alt_1_outlined), label: 'Utilisateurs'),
+          icon: Icon(Icons.check_circle),
+          label: 'Presence',
+        ),
 
       const BottomNavigationBarItem(
-          icon: Icon(Icons.account_circle), label: 'Profil'),
-      
+        icon: Icon(Icons.history),
+        label: 'Historique',
+      ),
+
+      if (isAdmin)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.person_add_alt_1_outlined),
+          label: 'Utilisateurs',
+        ),
+
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.account_circle),
+        label: 'Profil',
+      ),
     ];
 
     return PopScope(
@@ -105,10 +110,7 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
             ),
           ),
         ),
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: pages,
-        ),
+        body: IndexedStack(index: _selectedIndex, children: pages),
         bottomNavigationBar: BottomNavigationBar(
           items: navItems,
           currentIndex: _selectedIndex,

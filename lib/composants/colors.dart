@@ -13,6 +13,18 @@ class AppColors {
     stops: [0.0, 0.3, 0.7, 1.0],
   );
 
+  static const LinearGradient greenGradient = LinearGradient(
+    colors: [
+      Color.fromARGB(255, 0, 91, 36),
+      Color.fromARGB(255, 0, 125, 71),
+      Color.fromARGB(255, 0, 165, 107),
+      Color.fromARGB(255, 0, 217, 192),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    stops: [0.0, 0.3, 0.7, 1.0],
+  );
+
   static const LinearGradient secondaryGradient = LinearGradient(
     colors: [
       Color.fromARGB(255, 74, 138, 202),

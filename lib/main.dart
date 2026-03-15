@@ -19,11 +19,7 @@ void main() async {
 
   await initializeDateFormatting('fr_FR', null);
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -50,9 +46,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-

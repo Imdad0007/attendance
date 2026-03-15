@@ -36,7 +36,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Veuillez remplir tous les champs.", style: TextStyle(fontSize: 16),),
+          content: Text(
+            "Veuillez remplir tous les champs.",
+            style: TextStyle(fontSize: 16),
+          ),
           backgroundColor: AppColors.orange,
         ),
       );
@@ -48,14 +51,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      final authResult = await _authService.signIn(username, password);
+      final authResult = await _authService.signIn(
+        username,
+        password,
+      ); // Pour le service d'authentification Supabase
 
       if (!mounted) return;
 
       // Cas de succes
       if (authResult.user != null) {
         // Set the user in the Riverpod provider
-        ref.read(userProvider.notifier).state = authResult.user;
+        ref.read(userProvider.notifier).state = authResult
+            .user; // On met ce que retourne authResult dans userProvider
 
         // Naviguer vers l'ecran principale
         Navigator.pushReplacement(
@@ -83,13 +90,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage, style: TextStyle(fontSize: 16),), backgroundColor: errorColor),
+        SnackBar(
+          content: Text(errorMessage, style: TextStyle(fontSize: 16)),
+          backgroundColor: errorColor,
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Une erreur technique est survenue.", style: TextStyle(fontSize: 16),),
+          content: Text(
+            "Une erreur technique est survenue.",
+            style: TextStyle(fontSize: 16),
+          ),
           backgroundColor: AppColors.red,
         ),
       );

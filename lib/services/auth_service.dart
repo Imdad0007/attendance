@@ -29,7 +29,8 @@ class AuthService {
     } catch (e) {
       debugPrint("AuthService Error: $e");
       if (e is PostgrestException) {
-        if (e.code == 'PGRST116') return AuthResult(status: AuthStatus.invalidCredentials);
+        if (e.code == 'PGRST116')
+          return AuthResult(status: AuthStatus.invalidCredentials);
       } else if (e is SocketException || e is http.ClientException) {
         return AuthResult(status: AuthStatus.noInternet);
       }

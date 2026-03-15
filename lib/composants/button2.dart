@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 
-class Button extends StatelessWidget {
+class Button2 extends StatelessWidget {
   final String label;
+  final Gradient? gradient;
   final VoidCallback? onPressed;
 
-  const Button({super.key, required this.label, required this.onPressed});
+  const Button2({
+    super.key,
+    required this.label,
+    required this.gradient,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +19,7 @@ class Button extends StatelessWidget {
       // color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          gradient: onPressed == null ? null : AppColors.primaryGradient,
+          gradient: onPressed == null ? null : gradient,
           color: onPressed == null
               ? AppColors.grey
               : null, // Use grey when disabled
