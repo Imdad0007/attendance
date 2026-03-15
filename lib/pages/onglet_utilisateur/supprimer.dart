@@ -99,7 +99,6 @@ class _SupprimerState extends State<Supprimer> {
       appBar: AppBar(
         title: const Text(
           'Supprimer un surveillant',
-          style: TextStyle(color: Colors.white),
         ),
         backgroundColor: AppColors.red,
       ),
