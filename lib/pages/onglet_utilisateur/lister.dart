@@ -26,7 +26,7 @@ class _ListerState extends State<Lister> {
     final response = await client
         .from('surveillant')
         .select('nom, prenom, telephone')
-        .filter('delete_at', 'is', null)
+        //.filter('delete_at', 'is', null)  // C'est plus vraiement important puisque avec la sécurité RLS configurée au niveau de la table surveillant de la base de donnée, le select ne renvoyera que les surveillants dont les comptes sont actif (dont la colonne delete_at est NULL)
         .order('nom, prenom');
 
     if (!mounted) return;
@@ -84,9 +84,7 @@ class _ListerState extends State<Lister> {
                           ),
                           TextSpan(
                             text: "${s['telephone']}",
-                            style: const TextStyle(
-                              color: Colors.blue, 
-                            ),
+                            style: const TextStyle(color: Colors.blue),
                           ),
                         ],
                       ),

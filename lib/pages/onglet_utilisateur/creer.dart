@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert'; // pour utf8
-import 'package:crypto/crypto.dart'; // pour sha256
 import 'package:attendance/composants/button2.dart';
 
 class Creer extends StatefulWidget {
@@ -23,13 +21,6 @@ class _CreerState extends State<Creer> {
 
   bool _loading = false;
 
-  // Fonction pour hacher le mot de passe
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
   Future<void> _creerSurveillant() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -37,14 +28,14 @@ class _CreerState extends State<Creer> {
       _loading = true;
     });
 
-    final hashedPassword = hashPassword(_mdpController.text.trim());
+    final password = _mdpController.text.trim();
 
     final response = await Supabase.instance.client.from('surveillant').insert({
       'nom': _nomController.text.trim(),
       'prenom': _prenomController.text.trim(),
       'telephone': _telephoneController.text.trim(),
       'username': _usernameController.text.trim(),
-      'mdp': hashedPassword,
+      'mdp': password,
     });
 
     setState(() {
@@ -55,7 +46,12 @@ class _CreerState extends State<Creer> {
       // Affiche le SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Surveillant créé avec succès !'),
+          content: Text(
+            'Surveillant créé avec succès !',
+            style: TextStyle(color: AppColors.black, fontSize: 16),
+          ),
+          backgroundColor: AppColors.green,
+
           duration: Duration(seconds: 2),
         ),
       );

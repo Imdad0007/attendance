@@ -17,19 +17,19 @@ class _PresenceState extends State<Presence> {
   int? selectedNiveau;
   int? selectedFiliere;
   int? selectedClasse;
-  int? selectedCours;
+  int? selectedEcue;
   TimeOfDay? heureDebut;
   TimeOfDay? heureFin;
 
   // State for dropdown items
   List<Map<String, dynamic>> niveaux = [];
   List<Map<String, dynamic>> filieres = [];
-  List<Map<String, dynamic>> cours = [];
+  List<Map<String, dynamic>> ecue = [];
 
   // State for loading indicators
   bool isLoadingNiveaux = true;
   bool isLoadingFilieres = false;
-  bool isLoadingCours = false;
+  bool isLoadingEcue = false;
   bool isNavigating = false;
 
   final _supabase = Supabase.instance.client;
@@ -131,7 +131,7 @@ class _PresenceState extends State<Presence> {
     }
   }
 
-  Future<void> _fetchCours(int idClasse) async {
+  Future<void> _fetchEcue(int idClasse) async {
     try {
       final response = await _supabase
           .from('ecue')
@@ -139,7 +139,7 @@ class _PresenceState extends State<Presence> {
           .eq('id_classe', idClasse);
 
       setState(() {
-        cours = (response as List)
+        ecue = (response as List)
             .map(
               (item) => {
                 'id_ecue': item['id_ecue'],
@@ -147,17 +147,17 @@ class _PresenceState extends State<Presence> {
               },
             )
             .toList();
-        isLoadingCours = false;
+        isLoadingEcue = false;
       });
     } catch (e) {
       // Handle error
       setState(() {
-        isLoadingCours = false;
+        isLoadingEcue = false;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Erreur de chargement des cours"),
+            content: Text("Erreur de chargement des ecue"),
             backgroundColor: AppColors.red,
           ),
         );
@@ -191,7 +191,7 @@ class _PresenceState extends State<Presence> {
   bool get _isFormValid =>
       selectedNiveau != null &&
       selectedFiliere != null &&
-      selectedCours != null &&
+      selectedEcue != null &&
       heureDebut != null &&
       heureFin != null &&
       // Time validation: heureDebut must be strictly before heureFin
@@ -203,11 +203,11 @@ class _PresenceState extends State<Presence> {
     setState(() {
       selectedNiveau = null;
       selectedFiliere = null;
-      selectedCours = null;
+      selectedEcue = null;
       heureDebut = null;
       heureFin = null;
       filieres = [];
-      cours = [];
+      ecue = [];
     });
   }
 
@@ -287,9 +287,9 @@ class _PresenceState extends State<Presence> {
                               selectedNiveau = val;
                               // Reset subsequent fields
                               selectedFiliere = null;
-                              selectedCours = null;
+                              selectedEcue = null;
                               filieres = [];
-                              cours = [];
+                              ecue = [];
                               if (val != null) {
                                 isLoadingFilieres = true;
                                 _fetchFilieres(val);
@@ -319,9 +319,9 @@ class _PresenceState extends State<Presence> {
                             // 1. Mise à jour immédiate de l'UI
                             setState(() {
                               selectedFiliere = val;
-                              selectedCours = null;
-                              cours = [];
-                              isLoadingCours = true;
+                              selectedEcue = null;
+                              ecue = [];
+                              isLoadingEcue = true;
                             });
 
                             // 2. Appels asynchrones en dehors du setState
@@ -329,13 +329,13 @@ class _PresenceState extends State<Presence> {
                               await _fetchClasse(selectedNiveau!, val);
 
                               if (selectedClasse != null) {
-                                await _fetchCours(selectedClasse!);
+                                await _fetchEcue(selectedClasse!);
                               }
                             } finally {
                               // 3. Fin du chargement
                               if (mounted) {
                                 setState(() {
-                                  isLoadingCours = false;
+                                  isLoadingEcue = false;
                                 });
                               }
                             }
@@ -343,25 +343,25 @@ class _PresenceState extends State<Presence> {
                         ),
                       SizedBox(height: verticalSpacing),
 
-                      // Cours Dropdown
-                      if (isLoadingCours)
+                      // Ecue Dropdown
+                      if (isLoadingEcue)
                         const Center(child: CircularProgressIndicator())
                       else
                         DropdownField<int>(
-                          label: "COURS",
-                          value: selectedCours,
+                          label: "ECUE",
+                          value: selectedEcue,
                           disabled: selectedFiliere == null,
-                          items: cours.map((c) {
+                          items: ecue.map((c) {
                             return DropdownMenuItem<int>(
                               value: c['id_ecue'],
                               child: Text(c['intitule_ecue']),
                             );
                           }).toList(),
                           onChanged: (val) =>
-                              setState(() => selectedCours = val),
+                              setState(() => selectedEcue = val),
                         ),
 
-                      if (selectedCours != null) ...[
+                      if (selectedEcue != null) ...[
                         SizedBox(height: verticalSpacing),
                         _buildTimeSection(),
                       ],
@@ -453,8 +453,8 @@ class _PresenceState extends State<Presence> {
       final filiereLabel = filieres.firstWhere(
         (f) => f['id_filiere'] == selectedFiliere,
       )['nom_filiere'];
-      final coursLabel = cours.firstWhere(
-        (c) => c['id_ecue'] == selectedCours,
+      final ecueLabel = ecue.firstWhere(
+        (c) => c['id_ecue'] == selectedEcue,
       )['intitule_ecue'];
 
       if (!mounted) return;
@@ -465,12 +465,12 @@ class _PresenceState extends State<Presence> {
           builder: (context) => ClassList(
             // Appel de ClassList
             students: studentsWithParentInfo,
-            idEcue: selectedCours!,
+            idEcue: selectedEcue!,
             heureDebut: heureDebut!,
             heureFin: heureFin!,
             niveauLabel: niveauLabel,
             filiereLabel: filiereLabel,
-            coursLabel: coursLabel,
+            ecueLabel: ecueLabel,
           ),
         ),
       );

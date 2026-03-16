@@ -27,7 +27,8 @@ class _SupprimerState extends State<Supprimer> {
       final List<dynamic> response = await _client
           .from('surveillant')
           .select('id_surveillant, nom, prenom')
-          .filter('delete_at', 'is', null)
+          // Filtrer et renvoyé les surveillant qui ont delete_at à NULL
+          //.filter('delete_at', 'is', null)   // C'est plus vraiement important puisque avec la sécurité RLS configurée au niveau de la table surveillant de la base de donnée, le select ne renvoyera que les surveillants dont les comptes sont actif (dont la colonne delete_at est NULL)
           .order('nom, prenom');
 
       if (!mounted) return;
@@ -81,7 +82,13 @@ class _SupprimerState extends State<Supprimer> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Surveillant supprimé avec succès !')),
+        const SnackBar(
+          content: Text(
+            'Surveillant supprimé avec succès !',
+            style: TextStyle(color: AppColors.black, fontSize: 16),
+          ),
+          backgroundColor: AppColors.green,
+        ),
       );
 
       // Recharge la liste après suppression
@@ -97,9 +104,7 @@ class _SupprimerState extends State<Supprimer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Supprimer un surveillant',
-        ),
+        title: const Text('Supprimer un surveillant'),
         backgroundColor: AppColors.red,
       ),
       body: _loading && _surveillants.isEmpty

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:intl/intl.dart';
-import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/providers/user_provider.dart'; // Le provider qui permet d'avoir accès aux informations des utilisateurs connectés. Il faut l'inclure dans le fichier où l'on veut utilisé les informations du surveillant connecté.  Il est toujours accompagné de l'inclusion du package de riverpod
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/role_provider.dart';
 import 'package:attendance/composants/carte.dart';

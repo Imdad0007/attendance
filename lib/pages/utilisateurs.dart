@@ -26,7 +26,7 @@ class Creation extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'Gérer les utilisateurs',
+                          'GERER LES UTILISATEURS',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,

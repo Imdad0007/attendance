@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/providers/user_provider.dart'; // Le provider qui permet d'avoir accès aux informations des utilisateurs connectés. Il faut l'inclure dans le fichier où l'on veut utilisé les informations du surveillant connecté. Il est toujours accompagné de l'inclusion du package de riverpod
 import 'package:attendance/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/services/whatsapp_service.dart';
@@ -16,7 +16,7 @@ class ClassList extends ConsumerStatefulWidget {
   final TimeOfDay heureFin;
   final String niveauLabel;
   final String filiereLabel;
-  final String coursLabel;
+  final String ecueLabel;
 
   const ClassList({
     super.key,
@@ -26,7 +26,7 @@ class ClassList extends ConsumerStatefulWidget {
     required this.heureFin,
     required this.niveauLabel,
     required this.filiereLabel,
-    required this.coursLabel,
+    required this.ecueLabel,
   });
 
   @override
@@ -236,7 +236,7 @@ class _ClassListState extends ConsumerState<ClassList> {
                             studentName:
                                 '${student['nom']} ${student['prenom']}',
                             dateAbsence: sessionDate,
-                            courseName: widget.coursLabel,
+                            courseName: widget.ecueLabel,
                             coursehour: coursehour,
                           );
                         }
@@ -380,7 +380,7 @@ class _ClassListState extends ConsumerState<ClassList> {
           const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
           Flexible(
             child: Text(
-              widget.coursLabel,
+              widget.ecueLabel,
               style: const TextStyle(color: AppColors.white, fontSize: 16),
               overflow: TextOverflow.ellipsis,
             ),
