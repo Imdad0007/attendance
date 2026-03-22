@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:attendance/composants/colors.dart';
 import '../models/historique_model.dart';
 import '../providers/user_provider.dart';
 import 'package:attendance/providers/role_provider.dart';
+import 'detail_historique.dart';
 
-/// ------------------------------
-/// Repository
-/// ------------------------------
+/// -------------------- Repository --------------------
 class HistoriqueRepository {
   final SupabaseClient client;
 
@@ -17,34 +17,33 @@ class HistoriqueRepository {
 
   Future<List<HistoriqueModel>> fetch({
     required bool isAdmin,
-    required int surveillantId,
+    int? selectedSurveillantId,
     int? ecueId,
+    int? filiereId,
+    DateTime? date,
     int limit = 20,
     int offset = 0,
   }) async {
-    // Appel RPC : si admin, on passe null pour voir tout l'historique
     final response = await client.rpc(
       'get_historique',
       params: {
-        'p_surveillant_id': isAdmin ? null : surveillantId,
-        'p_ecue_id': ecueId,
+        'p_surveillant_id': selectedSurveillantId,
+        'p_ecue_id': ecueId ?? null,
+        'p_filiere_id': filiereId ?? null,
+        'p_date': date != null ? DateFormat('yyyy-MM-dd').format(date) : null,
         'p_limit': limit,
         'p_offset': offset,
       },
     );
 
     if (response is List) {
-      return response
-          .map((e) => HistoriqueModel.fromMap(e as Map<String, dynamic>))
-          .toList();
+      return response.map((e) => HistoriqueModel.fromMap(e)).toList();
     }
     return [];
   }
 }
 
-/// ------------------------------
-/// Riverpod Providers
-/// ------------------------------
+/// -------------------- Providers --------------------
 final supabaseProvider = Provider((ref) => Supabase.instance.client);
 
 final historiqueRepositoryProvider = Provider(
@@ -57,13 +56,12 @@ final historiqueProvider =
       AsyncValue<List<HistoriqueModel>>
     >((ref) => HistoriqueNotifier(ref.read(historiqueRepositoryProvider), ref));
 
-/// ------------------------------
-/// Historique Notifier avec Realtime Stream
-/// ------------------------------
+/// -------------------- Notifier --------------------
 class HistoriqueNotifier
     extends StateNotifier<AsyncValue<List<HistoriqueModel>>> {
   final HistoriqueRepository repository;
   final Ref ref;
+
   StreamSubscription? _subscription;
 
   HistoriqueNotifier(this.repository, this.ref)
@@ -75,6 +73,12 @@ class HistoriqueNotifier
   bool _hasMore = true;
   bool _isLoading = false;
 
+  int? selectedSurveillantId;
+  int? selectedEcueId;
+  int? selectedFiliereId;
+  DateTime? selectedDate;
+  String? selectedNiveauLabel;
+
   /// Chargement initial
   Future<void> loadInitial() async {
     state = const AsyncValue.loading();
@@ -84,12 +88,10 @@ class HistoriqueNotifier
 
     await loadMore();
 
-    if (_subscription == null) {
-      _setupRealtime();
-    }
+    if (_subscription == null) _setupRealtime();
   }
 
-  /// Chargement avec pagination
+  /// Pagination
   Future<void> loadMore() async {
     if (_isLoading || !_hasMore) return;
     _isLoading = true;
@@ -100,7 +102,12 @@ class HistoriqueNotifier
 
       final newData = await repository.fetch(
         isAdmin: isAdmin,
-        surveillantId: user?.idSurveillant ?? 0,
+        selectedSurveillantId: isAdmin
+            ? selectedSurveillantId // admin peut filtrer ou non
+            : (user?.idSurveillant), // surveillant voit seulement lui-même
+        ecueId: selectedEcueId,
+        filiereId: selectedFiliereId,
+        date: selectedDate,
         limit: _limit,
         offset: _offset,
       );
@@ -108,9 +115,7 @@ class HistoriqueNotifier
       if (newData.length < _limit) _hasMore = false;
 
       for (var item in newData) {
-        if (!_items.any((e) => e.idSeance == item.idSeance)) {
-          _items.add(item);
-        }
+        if (!_items.any((e) => e.idSeance == item.idSeance)) _items.add(item);
       }
 
       _offset = _items.length;
@@ -122,40 +127,41 @@ class HistoriqueNotifier
     _isLoading = false;
   }
 
-  /// Configuration Realtime Supabase via Stream
-  void _setupRealtime() {
-    final client = ref.read(supabaseProvider);
-    final user = ref.read(userProvider);
-    final isAdmin = ref.read(isAdminProvider);
-
-    if (user == null) return;
-
-    // Supabase Stream API
-    final query = client.from('seance').stream(primaryKey: ['id_seance']);
-
-    if (!isAdmin) {
-      // Filtrage par ID surveillant si non admin
-      _subscription = query.eq('id_surveillant', user.idSurveillant).listen((
-        data,
-      ) {
-        debugPrint('Realtime: New session detected for SURVEILLANT');
-        _refreshQuietly();
-      });
-    } else {
-      // Stream global pour l'admin
-      _subscription = query.listen((data) {
-        debugPrint('Realtime: New session detected for ADMIN');
-        _refreshQuietly();
-      });
-    }
+  /// Setters pour filtres
+  Future<void> setSurveillant(int? id) async {
+    selectedSurveillantId = id;
+    await loadInitial();
   }
 
-  Future<void> _refreshQuietly() async {
-    if (_isLoading) return;
-    _items.clear();
-    _offset = 0;
-    _hasMore = true;
-    await loadMore();
+  Future<void> setDate(DateTime? date) async {
+    selectedDate = date;
+    await loadInitial();
+  }
+
+  Future<void> setFiliere(int filiereId) async {
+    selectedFiliereId = filiereId;
+    await loadInitial();
+  }
+
+  Future<void> setEcue(int? ecueId) async {
+    selectedEcueId = ecueId;
+    await loadInitial();
+  }
+
+  Future<void> resetFilters() async {
+    selectedSurveillantId = null;
+    selectedEcueId = null;
+    selectedFiliereId = null;
+    selectedDate = null;
+    await loadInitial();
+  }
+
+  void _setupRealtime() {
+    final client = ref.read(supabaseProvider);
+    _subscription = client
+        .from('seance')
+        .stream(primaryKey: ['id_seance'])
+        .listen((_) => loadInitial());
   }
 
   @override
@@ -165,9 +171,7 @@ class HistoriqueNotifier
   }
 }
 
-/// ------------------------------
-/// Page Historique
-/// ------------------------------
+/// -------------------- Page --------------------
 class Historique extends ConsumerStatefulWidget {
   const Historique({super.key});
 
@@ -181,7 +185,6 @@ class _HistoriqueState extends ConsumerState<Historique> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(historiqueProvider.notifier).loadInitial();
     });
@@ -196,10 +199,106 @@ class _HistoriqueState extends ConsumerState<Historique> {
     }
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  /// -------------------- FILTRES --------------------
+
+  // Surveillants
+  void _showSurveillants() async {
+    final data = await Supabase.instance.client
+        .from('surveillant')
+        .select('id_surveillant, nom');
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => ListView(
+        children: [
+          ListTile(
+            title: const Text("Tous"),
+            onTap: () {
+              ref.read(historiqueProvider.notifier).setSurveillant(null);
+              Navigator.pop(context);
+            },
+          ),
+          ...data.map<Widget>(
+            (s) => ListTile(
+              title: Text(s['nom']),
+              onTap: () {
+                ref
+                    .read(historiqueProvider.notifier)
+                    .setSurveillant(s['id_surveillant']);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Date
+  void _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+
+    if (picked != null) {
+      ref.read(historiqueProvider.notifier).setDate(picked);
+    }
+  }
+
+  void _showEcues() async {
+    final data = await Supabase.instance.client
+        .from('ecue')
+        .select('id_ecue, intitule_ecue')
+        .order('intitule_ecue');
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => ListView(
+        children: [
+          ListTile(
+            title: const Text("Toutes les matières"),
+            onTap: () {
+              ref.read(historiqueProvider.notifier).setEcue(null);
+              Navigator.pop(context);
+            },
+          ),
+          ...data.map<Widget>((e) {
+            return ListTile(
+              title: Text(e['intitule_ecue']),
+              onTap: () {
+                ref.read(historiqueProvider.notifier).setEcue(e['id_ecue']);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Widget filtre
+  Widget _filterItem(String title) {
+    return InkWell(
+      onTap: () {
+        if (title == "Surveillants") {
+          _showSurveillants();
+        } else if (title == "Dates") {
+          _pickDate();
+        } else if (title == "ECUE") {
+          _showEcues();
+        }
+      },
+      child: Row(
+        children: [
+          Text(title),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down, size: 18),
+        ],
+      ),
+    );
   }
 
   @override
@@ -207,52 +306,50 @@ class _HistoriqueState extends ConsumerState<Historique> {
     final state = ref.watch(historiqueProvider);
 
     return Scaffold(
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("Erreur : $e")),
-        data: (historiques) {
-          if (historiques.isEmpty) {
-            return const Center(child: Text("Aucun historique"));
-          }
-
-          return Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'HISTORIQUE',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: RefreshIndicator(
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _filterItem("Surveillants"),
+                const SizedBox(width: 20),
+                _filterItem("Dates"),
+                const SizedBox(width: 20),
+                _filterItem("ECUE"),
+              ],
+            ),
+            TextButton(
+              onPressed: () =>
+                  ref.read(historiqueProvider.notifier).resetFilters(),
+              child: const Text("Réinitialiser"),
+            ),
+            Expanded(
+              child: state.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text("Erreur : $e")),
+                data: (historiques) => RefreshIndicator(
                   onRefresh: () =>
                       ref.read(historiqueProvider.notifier).loadInitial(),
                   child: ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: historiques.length,
-                    itemBuilder: (context, index) {
-                      return _HistoriqueCard(item: historiques[index]);
-                    },
+                    itemBuilder: (_, i) =>
+                        _HistoriqueCard(item: historiques[i]),
                   ),
                 ),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// ------------------------------
-/// Widget Card
-/// ------------------------------
+/// -------------------- Carte --------------------
 class _HistoriqueCard extends StatelessWidget {
   final HistoriqueModel item;
 
@@ -260,27 +357,12 @@ class _HistoriqueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String formatTime(String timeStr) {
-      try {
-        final dt = DateTime.parse("2000-01-01 $timeStr");
-        return DateFormat.Hm().format(dt);
-      } catch (_) {
-        return timeStr.substring(0, 5);
-      }
-    }
-
-    final hDebut = formatTime(item.heureDebut);
-    final hFin = formatTime(item.heureFin);
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,25 +371,39 @@ class _HistoriqueCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${item.nomSurveillant} ${item.prenomSurveillant}",
+                item.nomSurveillant,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
               ),
-              Text(DateFormat('dd-MM-yyyy').format(item.dateSeance)),
+              Text(DateFormat('dd/MM/yyyy').format(item.dateSeance)),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(item.ecue),
-          const SizedBox(height: 4),
-          Text("Classe : ${item.classe}"),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("$hDebut - $hFin"),
-              const Text("Voir plus >", style: TextStyle(color: Colors.blue)),
+              Text(item.ecue),
+              Text("${item.heureDebut} - ${item.heureFin}"),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Classe : ${item.classe}"),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailHistorique(item: item),
+                    ),
+                  );
+                },
+                child: const Text("Voir plus"),
+              ),
             ],
           ),
         ],

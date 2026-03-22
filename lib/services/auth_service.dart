@@ -1,9 +1,8 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:attendance/models/surveillant_model.dart';
+import 'package:flutter/foundation.dart';
 
+// --- CES ENUMS DOIVENT ÊTRE ICI POUR ÊTRE VUES PAR LOGIN.DART ---
 enum AuthStatus { onlineSuccess, invalidCredentials, noInternet, unknownError }
 
 class AuthResult {
@@ -15,26 +14,47 @@ class AuthResult {
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // FONCTION DE CONNEXION
   Future<AuthResult> signIn(String username, String password) async {
     try {
       final response = await _supabase
           .from('surveillant')
           .select()
           .eq('username', username)
-          .eq('mdp', password)
-          .single();
+          .eq('mdp', password) // Vérifie bien que ta colonne s'appelle 'mdp'
+          .maybeSingle(); // Retourne null si pas trouvé au lieu de crash
+
+      if (response == null) {
+        return AuthResult(status: AuthStatus.invalidCredentials);
+      }
 
       final user = Surveillant.fromMap(response);
       return AuthResult(status: AuthStatus.onlineSuccess, user: user);
     } catch (e) {
-      debugPrint("AuthService Error: $e");
-      if (e is PostgrestException) {
-        if (e.code == 'PGRST116')
-          return AuthResult(status: AuthStatus.invalidCredentials);
-      } else if (e is SocketException || e is http.ClientException) {
+      debugPrint("Erreur Login: $e");
+      // On détecte si c'est un problème de réseau
+      if (e.toString().contains("SocketException") ||
+          e.toString().contains("connection error")) {
         return AuthResult(status: AuthStatus.noInternet);
       }
       return AuthResult(status: AuthStatus.unknownError);
+    }
+  }
+
+  // FONCTION DE MISE À JOUR (Celle qui posait problème)
+  Future<bool> updateUserField(int userId, Map<String, dynamic> data) async {
+    try {
+      await _supabase
+          .from('surveillant')
+          .update(data)
+          .eq(
+            'id_surveillant',
+            userId,
+          ); // NOM EXACT SELON TA CAPTURE (minuscules)
+      return true;
+    } catch (e) {
+      debugPrint("Erreur Update: $e");
+      return false;
     }
   }
 }
