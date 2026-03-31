@@ -34,91 +34,61 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Veuillez remplir tous les champs.",
-            style: TextStyle(fontSize: 16),
-          ),
-          backgroundColor: AppColors.orange,
-        ),
-      );
+      _showSnackBar("Veuillez remplir tous les champs.", AppColors.orange);
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final authResult = await _authService.signIn(
-        username,
-        password,
-      ); // Pour le service d'authentification Supabase
+      // Appel au service d'authentification
+      final authResult = await _authService.signIn(username, password);
 
       if (!mounted) return;
 
-      // Cas de succes
       if (authResult.user != null) {
-        // Set the user in the Riverpod provider
-        ref.read(userProvider.notifier).state = authResult
-            .user; // On met ce que retourne authResult dans userProvider
+        // Sauvegarde de l'utilisateur dans le provider Riverpod
+        ref.read(userProvider.notifier).state = authResult.user;
 
-        // Naviguer vers l'ecran principale
+        // Navigation vers l'écran principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainNavigationBar()),
         );
-        return;
+      } else {
+        // Gestion des erreurs de connexion
+        String message = "Erreur de connexion.";
+        Color color = AppColors.red;
+
+        if (authResult.status == AuthStatus.invalidCredentials) {
+          message = "Nom d'utilisateur ou mot de passe incorrect.";
+        } else if (authResult.status == AuthStatus.noInternet) {
+          message = "Vérifiez votre connexion internet.";
+          color = AppColors.orange;
+        }
+
+        _showSnackBar(message, color);
       }
-
-      // Error case
-      String? errorMessage;
-      Color errorColor = AppColors.red;
-
-      switch (authResult.status) {
-        case AuthStatus.invalidCredentials:
-          errorMessage = "Nom d'utilisateur ou mot de passe incorrect.";
-          break;
-        case AuthStatus.noInternet:
-          errorMessage = "Connexion impossible. Vérifiez votre réseau.";
-          errorColor = AppColors.orange;
-          break;
-        default:
-          errorMessage = "Une erreur inattendue est survenue.";
-          break;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage, style: TextStyle(fontSize: 16)),
-          backgroundColor: errorColor,
-        ),
-      );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Une erreur technique est survenue.",
-            style: TextStyle(fontSize: 16),
-          ),
-          backgroundColor: AppColors.red,
-        ),
-      );
+      _showSnackBar("Une erreur technique est survenue.", AppColors.red);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontSize: 16)),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -129,12 +99,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo
                   Image.asset('assets/img/attendance.png', height: 120),
-
                   const SizedBox(height: 40),
-
-                  // Titre
                   const Text(
                     'Connexion',
                     textAlign: TextAlign.center,
@@ -145,19 +111,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       color: AppColors.black,
                     ),
                   ),
-
                   const SizedBox(height: 40),
 
-                  // Champs de saisie
+                  // Utilise exactement le nom de ton composant (Textfield ou MyTextField)
                   Textfield(
                     controller: _usernameController,
                     hintText: "Nom d'utilisateur",
                     obscureText: false,
                     icon: Icons.person_outline,
                   ),
-
                   const SizedBox(height: 20),
-
                   Textfield(
                     controller: _passwordController,
                     hintText: "Mot de passe",
@@ -165,7 +128,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     icon: Icons.lock_outline,
                   ),
 
-                  // Mot de passe oublié
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -174,20 +136,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         'Mot de passe oublié ?',
                         style: TextStyle(
                           color: AppColors.black,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Bouton de connexion
                   _isLoading
-                      ? Button(label: "Connexion...", onPressed: null)
+                      ? const Center(child: CircularProgressIndicator())
                       : Button(label: "Se connecter", onPressed: _handleLogin),
-
-                  const SizedBox(height: 20),
                 ],
               ),
             ),

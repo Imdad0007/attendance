@@ -26,7 +26,7 @@ class Creation extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'GERER LES UTILISATEURS',
+                          'Gérer les utilisateurs',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -40,7 +40,7 @@ class Creation extends StatelessWidget {
                     Carte(
                       label: "Créer un compte",
                       icon: Icons.person_add,
-                      color: AppColors.green,
+                      color: Color(0xFF2E7D32),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -54,9 +54,25 @@ class Creation extends StatelessWidget {
                     SizedBox(height: verticalSpacing),
 
                     Carte(
+                      label: "Lister les surveillants",
+                      icon: Icons.list,
+                      color: Color(0xFF1565C0),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Lister(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: verticalSpacing),
+
+                    Carte(
                       label: "Supprimer un compte",
                       icon: Icons.delete,
-                      color: AppColors.red,
+                      color: Color(0xFFC62828),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -67,21 +83,7 @@ class Creation extends StatelessWidget {
                       },
                     ),
 
-                    SizedBox(height: verticalSpacing),
-
-                    Carte(
-                      label: "Lister les surveillants",
-                      icon: Icons.list,
-                      color: AppColors.blue,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Lister(),
-                          ),
-                        );
-                      },
-                    ),
+                    
                   ],
                 ),
               ),

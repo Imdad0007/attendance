@@ -15,7 +15,7 @@ class _CreerState extends State<Creer> {
 
   final _nomController = TextEditingController();
   final _prenomController = TextEditingController();
-  final _telephoneController = TextEditingController(text: '+229 01 ');
+  final _telephoneController = TextEditingController(text: '22901');
   final _usernameController = TextEditingController();
   final _mdpController = TextEditingController();
 
@@ -24,42 +24,51 @@ class _CreerState extends State<Creer> {
   Future<void> _creerSurveillant() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
 
-    final password = _mdpController.text.trim();
+    try {
+      final password = _mdpController.text.trim();
 
-    final response = await Supabase.instance.client.from('surveillant').insert({
-      'nom': _nomController.text.trim(),
-      'prenom': _prenomController.text.trim(),
-      'telephone': _telephoneController.text.trim(),
-      'username': _usernameController.text.trim(),
-      'mdp': password,
-    });
-
-    setState(() {
-      _loading = false;
-    });
-
-    if (mounted) {
-      // Affiche le SnackBar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Surveillant créé avec succès !',
-            style: TextStyle(color: AppColors.black, fontSize: 16),
-          ),
-          backgroundColor: AppColors.green,
-
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Retourne à la page précédente après un court délai pour voir le SnackBar
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) Navigator.pop(context);
+      await Supabase.instance.client.from('surveillant').insert({
+        'nom': _nomController.text.trim(),
+        'prenom': _prenomController.text.trim(),
+        'telephone': _telephoneController.text.trim(),
+        'username': _usernameController.text.trim(),
+        'mdp': password,
+        'role': 'adjoint', // Forcer le rôle adjoint par défaut
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Surveillant créé avec succès !',
+              style: TextStyle(color: AppColors.black, fontSize: 16),
+            ),
+            backgroundColor: AppColors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
+    } catch (e) {
+      String errorMsg = "Erreur lors de la création";
+      if (e.toString().contains("duplicate key")) {
+        errorMsg = "Ce nom d'utilisateur est déjà pris";
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: AppColors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -67,8 +76,15 @@ class _CreerState extends State<Creer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Créer un compte"),
-        backgroundColor: AppColors.green,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        ),
+        title: const Text("Créer un compte",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+        backgroundColor: Color(0xFF2E7D32),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -100,12 +116,12 @@ class _CreerState extends State<Creer> {
                 controller: _telephoneController,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  labelText: "Téléphone (+229 01 XX XX XX XX)",
+                  labelText: "Téléphone (22901XXXXXXXX)",
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return "Téléphone requis";
-                  final regExp = RegExp(r'^\+229 01 \d{2} \d{2} \d{2} \d{2}$');
+                  final regExp = RegExp(r'^22901\d{8}$');
                   if (!regExp.hasMatch(value)) return "Format invalide";
                   return null;
                 },
@@ -118,7 +134,7 @@ class _CreerState extends State<Creer> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) =>
-                    value == null || value.isEmpty ? "Username requis" : null,
+                    value == null || value.isEmpty ? "Nom d'utilisateur requis" : null,
               ),
               const SizedBox(height: 16),
               TextFormField(

@@ -43,7 +43,7 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
     // Pages dynamiques selon rôle
     final pages = [
       HomePage(
-        onStartCall: isAdmin ? () => _onItemTapped(2) : () => _onItemTapped(1),
+        onStartCall: () => _onItemTapped(1),
       ),
       if (isAdjoint) Presence(),
       const Historique(),
