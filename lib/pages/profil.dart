@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/pages/login.dart';
+import 'package:attendance/composants/button.dart';
 
 class Profil extends ConsumerStatefulWidget {
   const Profil({super.key});
@@ -31,6 +32,7 @@ class _ProfilState extends ConsumerState<Profil> {
       ref.read(userProvider.notifier).state = user.copyWith(
         nom: data['nom'] ?? user.nom,
         prenom: data['prenom'] ?? user.prenom,
+        username: data['username'] ?? user.username,
         telephone: data['telephone'] ?? user.telephone,
         mdp: data['mdp'] ?? user.mdp,
       );
@@ -43,6 +45,21 @@ class _ProfilState extends ConsumerState<Profil> {
         );
       }
     }
+  }
+
+  String _formatPhone(String? phone) {
+    if (phone == null || phone.isEmpty) return "Aucun numéro";
+    
+    // Nettoyer le numéro (garder uniquement les chiffres)
+    String cleaned = phone.replaceAll(RegExp(r'\D'), '');
+    
+    // Format attendu: 229XXXXXXXXXX (13 chiffres)
+    if (cleaned.length == 13) {
+      return "+${cleaned.substring(0, 3)} ${cleaned.substring(3, 5)} ${cleaned.substring(5, 7)} ${cleaned.substring(7, 9)} ${cleaned.substring(9, 11)} ${cleaned.substring(11, 13)}";
+    }
+    
+    // Si format différent, on ajoute au moins le + si manquant
+    return cleaned.startsWith('+') ? cleaned : "+$cleaned";
   }
 
   @override
@@ -79,7 +96,7 @@ class _ProfilState extends ConsumerState<Profil> {
                     ),
                   ),
                   Text(
-                    user?.prenom ?? "Utilisateur",
+                    user?.nomComplet ?? "Utilisateur",
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -121,7 +138,7 @@ class _ProfilState extends ConsumerState<Profil> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                user?.telephone ?? "Aucun numéro",
+                                _formatPhone(user?.telephone),
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ),
@@ -143,12 +160,12 @@ class _ProfilState extends ConsumerState<Profil> {
 
             _buildTile(
               Icons.person_outline,
-              "Modifier mon nom",
-              () => _editField("prenom", user?.prenom),
+              "Modifier votre nom d'utilisateur",
+              () => _editField("username", user?.username),
             ),
             _buildTile(
               Icons.lock_outline,
-              "Changer le mot de passe",
+              "Modifier votre mot de passe",
               _editPasswordDialog,
             ),
 
@@ -169,10 +186,10 @@ class _ProfilState extends ConsumerState<Profil> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Modifier le $key"),
+        title: Text("Modifier le nom d'utilisateur"),
         content: TextField(
           controller: controller,
-          decoration: InputDecoration(hintText: "Votre $key"),
+          decoration: InputDecoration(hintText: "Votre nom d'utilisateur"),
           autofocus: true,
         ),
         actions: [
@@ -230,7 +247,7 @@ class _ProfilState extends ConsumerState<Profil> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Changer le mot de passe"),
+        title: const Text("Modifier le mot de passe"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -293,12 +310,8 @@ class _ProfilState extends ConsumerState<Profil> {
 
   Widget _logoutButton() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 25),
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF003366),
-        minimumSize: const Size(double.infinity, 55),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      ),
+    child: Button(
+      label: "Déconnexion",
       onPressed: () {
         ref.read(userProvider.notifier).state = null;
         Navigator.pushReplacement(
@@ -306,10 +319,6 @@ class _ProfilState extends ConsumerState<Profil> {
           MaterialPageRoute(builder: (c) => const LoginPage()),
         );
       },
-      child: const Text(
-        "Déconnexion",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
     ),
   );
 }

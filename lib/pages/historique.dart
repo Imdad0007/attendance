@@ -9,7 +9,7 @@ import '../providers/user_provider.dart';
 import 'package:attendance/providers/role_provider.dart';
 import 'detail_historique.dart';
 
-/// -------------------- Repository --------------------
+/// ===================== REPOSITORY =====================
 class HistoriqueRepository {
   final SupabaseClient client;
 
@@ -28,9 +28,10 @@ class HistoriqueRepository {
       'get_historique',
       params: {
         'p_surveillant_id': selectedSurveillantId,
-        'p_ecue_id': ecueId ?? null,
-        'p_filiere_id': filiereId ?? null,
-        'p_date': date != null ? DateFormat('yyyy-MM-dd').format(date) : null,
+        'p_ecue_id': ecueId,
+        'p_filiere_id': filiereId,
+        'p_date':
+            date != null ? DateFormat('yyyy-MM-dd').format(date) : null,
         'p_limit': limit,
         'p_offset': offset,
       },
@@ -43,20 +44,19 @@ class HistoriqueRepository {
   }
 }
 
-/// -------------------- Providers --------------------
+/// ===================== PROVIDERS =====================
 final supabaseProvider = Provider((ref) => Supabase.instance.client);
 
-final historiqueRepositoryProvider = Provider(
-  (ref) => HistoriqueRepository(ref.read(supabaseProvider)),
+final historiqueRepositoryProvider =
+    Provider((ref) => HistoriqueRepository(ref.read(supabaseProvider)));
+
+final historiqueProvider = StateNotifierProvider<
+    HistoriqueNotifier,
+    AsyncValue<List<HistoriqueModel>>>(
+  (ref) => HistoriqueNotifier(ref.read(historiqueRepositoryProvider), ref),
 );
 
-final historiqueProvider =
-    StateNotifierProvider<
-      HistoriqueNotifier,
-      AsyncValue<List<HistoriqueModel>>
-    >((ref) => HistoriqueNotifier(ref.read(historiqueRepositoryProvider), ref));
-
-/// -------------------- Notifier --------------------
+/// ===================== NOTIFIER =====================
 class HistoriqueNotifier
     extends StateNotifier<AsyncValue<List<HistoriqueModel>>> {
   final HistoriqueRepository repository;
@@ -65,7 +65,7 @@ class HistoriqueNotifier
   StreamSubscription? _subscription;
 
   HistoriqueNotifier(this.repository, this.ref)
-    : super(const AsyncValue.loading());
+      : super(const AsyncValue.loading());
 
   final List<HistoriqueModel> _items = [];
   int _offset = 0;
@@ -77,9 +77,7 @@ class HistoriqueNotifier
   int? selectedEcueId;
   int? selectedFiliereId;
   DateTime? selectedDate;
-  String? selectedNiveauLabel;
 
-  /// Chargement initial
   Future<void> loadInitial() async {
     state = const AsyncValue.loading();
     _items.clear();
@@ -88,10 +86,9 @@ class HistoriqueNotifier
 
     await loadMore();
 
-    if (_subscription == null) _setupRealtime();
+    _subscription ??= _setupRealtime();
   }
 
-  /// Pagination
   Future<void> loadMore() async {
     if (_isLoading || !_hasMore) return;
     _isLoading = true;
@@ -102,9 +99,8 @@ class HistoriqueNotifier
 
       final newData = await repository.fetch(
         isAdmin: isAdmin,
-        selectedSurveillantId: isAdmin
-            ? selectedSurveillantId // admin peut filtrer ou non
-            : (user?.idSurveillant), // surveillant voit seulement lui-même
+        selectedSurveillantId:
+            isAdmin ? selectedSurveillantId : user?.idSurveillant,
         ecueId: selectedEcueId,
         filiereId: selectedFiliereId,
         date: selectedDate,
@@ -114,8 +110,10 @@ class HistoriqueNotifier
 
       if (newData.length < _limit) _hasMore = false;
 
-      for (var item in newData) {
-        if (!_items.any((e) => e.idSeance == item.idSeance)) _items.add(item);
+      for (final item in newData) {
+        if (!_items.any((e) => e.idSeance == item.idSeance)) {
+          _items.add(item);
+        }
       }
 
       _offset = _items.length;
@@ -127,7 +125,6 @@ class HistoriqueNotifier
     _isLoading = false;
   }
 
-  /// Setters pour filtres
   Future<void> setSurveillant(int? id) async {
     selectedSurveillantId = id;
     await loadInitial();
@@ -135,11 +132,6 @@ class HistoriqueNotifier
 
   Future<void> setDate(DateTime? date) async {
     selectedDate = date;
-    await loadInitial();
-  }
-
-  Future<void> setFiliere(int filiereId) async {
-    selectedFiliereId = filiereId;
     await loadInitial();
   }
 
@@ -156,9 +148,10 @@ class HistoriqueNotifier
     await loadInitial();
   }
 
-  void _setupRealtime() {
+  StreamSubscription _setupRealtime() {
     final client = ref.read(supabaseProvider);
-    _subscription = client
+
+    return client
         .from('seance')
         .stream(primaryKey: ['id_seance'])
         .listen((_) => loadInitial());
@@ -171,7 +164,7 @@ class HistoriqueNotifier
   }
 }
 
-/// -------------------- Page --------------------
+/// ===================== PAGE =====================
 class Historique extends ConsumerStatefulWidget {
   const Historique({super.key});
 
@@ -185,6 +178,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(historiqueProvider.notifier).loadInitial();
     });
@@ -199,13 +193,13 @@ class _HistoriqueState extends ConsumerState<Historique> {
     }
   }
 
-  /// -------------------- FILTRES --------------------
+  /// ===================== FILTERS =====================
 
-  // Surveillants
   void _showSurveillants() async {
     final data = await Supabase.instance.client
         .from('surveillant')
-        .select('id_surveillant, nom');
+        .select('id_surveillant, nom, prenom')
+        .eq('role', 'adjoint');
 
     showModalBottomSheet(
       context: context,
@@ -220,7 +214,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
           ),
           ...data.map<Widget>(
             (s) => ListTile(
-              title: Text(s['nom']),
+              title: Text("${s['nom']} ${s['prenom']}"),
               onTap: () {
                 ref
                     .read(historiqueProvider.notifier)
@@ -234,7 +228,6 @@ class _HistoriqueState extends ConsumerState<Historique> {
     );
   }
 
-  // Date
   void _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -273,73 +266,228 @@ class _HistoriqueState extends ConsumerState<Historique> {
                 Navigator.pop(context);
               },
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
-  // Widget filtre
-  Widget _filterItem(String title) {
-    return InkWell(
-      onTap: () {
-        if (title == "Surveillants") {
-          _showSurveillants();
-        } else if (title == "Dates") {
-          _pickDate();
-        } else if (title == "ECUE") {
-          _showEcues();
-        }
-      },
-      child: Row(
-        children: [
-          Text(title),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down, size: 18),
-        ],
+  Widget _filterItem(String title, IconData icon, bool isActive, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : AppColors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: isActive ? AppColors.primary : AppColors.grey.withOpacity(0.3),
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isActive ? AppColors.white : AppColors.grey,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? AppColors.white : AppColors.black,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 16,
+                color: isActive ? AppColors.white : AppColors.grey,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+  /// ===================== BUILD =====================
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(historiqueProvider);
+    final notifier = ref.read(historiqueProvider.notifier);
+    final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
+      // backgroundColor: Colors.grey.shade50,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _filterItem("Surveillants"),
-                const SizedBox(width: 20),
-                _filterItem("Dates"),
-                const SizedBox(width: 20),
-                _filterItem("ECUE"),
-              ],
+            // --- HEADER ---
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Historique",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.black,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Consultez les sessions passées",
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.grey.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            TextButton(
-              onPressed: () =>
-                  ref.read(historiqueProvider.notifier).resetFilters(),
-              child: const Text("Réinitialiser"),
+
+            // --- FILTER BAR ---
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: SizedBox(
+                height: 50,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: InkWell(
+                        onTap: () => notifier.resetFilters(),
+                        borderRadius: BorderRadius.circular(15),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: (notifier.selectedSurveillantId != null ||
+                                    notifier.selectedDate != null ||
+                                    notifier.selectedEcueId != null)
+                                ? AppColors.red.withOpacity(0.1)
+                                : AppColors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Icon(
+                            Icons.refresh,
+                            size: 22,
+                            color: (notifier.selectedSurveillantId != null ||
+                                    notifier.selectedDate != null ||
+                                    notifier.selectedEcueId != null)
+                                ? AppColors.red
+                                : AppColors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (isAdmin)
+                      _filterItem(
+                        "Surveillants",
+                        Icons.person_search_outlined,
+                        notifier.selectedSurveillantId != null,
+                        _showSurveillants,
+                      ),
+                    _filterItem(
+                      "Dates",
+                      Icons.calendar_month_outlined,
+                      notifier.selectedDate != null,
+                      _pickDate,
+                    ),
+                    _filterItem(
+                      "Matières",
+                      Icons.book_outlined,
+                      notifier.selectedEcueId != null,
+                      _showEcues,
+                    ),
+                  ],
+                ),
+              ),
             ),
+
+            // --- LIST ---
             Expanded(
               child: state.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text("Erreur : $e")),
-                data: (historiques) => RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(historiqueProvider.notifier).loadInitial(),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: historiques.length,
-                    itemBuilder: (_, i) =>
-                        _HistoriqueCard(item: historiques[i]),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
+                error: (e, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.red),
+                      const SizedBox(height: 16),
+                      Text("Oups ! Une erreur est survenue.",
+                          style: TextStyle(color: AppColors.grey.shade700)),
+                    ],
+                  ),
+                ),
+                data: (historiques) {
+                  if (historiques.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history_toggle_off_rounded,
+                              size: 80, color: AppColors.grey.withOpacity(0.3)),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "Aucun historique trouvé",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.grey,
+                            ),
+                          ),
+              
+                        ],
+                      ),
+                    );
+                  }
+                  return RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () => notifier.loadInitial(),
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      itemCount: historiques.length + (notifier._hasMore ? 1 : 0),
+                      itemBuilder: (_, i) {
+                        if (i == historiques.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        return _HistoriqueCard(item: historiques[i]);
+                      },
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -349,7 +497,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
   }
 }
 
-/// -------------------- Carte --------------------
+/// ===================== CARD =====================
 class _HistoriqueCard extends StatelessWidget {
   final HistoriqueModel item;
 
@@ -358,56 +506,141 @@ class _HistoriqueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                item.nomSurveillant,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              Text(DateFormat('dd/MM/yyyy').format(item.dateSeance)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(item.ecue),
-              Text("${item.heureDebut} - ${item.heureFin}"),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Classe : ${item.classe}"),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DetailHistorique(item: item),
-                    ),
-                  );
-                },
-                child: const Text("Voir plus"),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Barre latérale colorée pour le style
+              Container(
+                width: 6,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "${item.nomSurveillant} ${item.prenomSurveillant}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: AppColors.black,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              DateFormat('dd MMM yyyy', 'fr_FR')
+                                  .format(item.dateSeance),
+                              style: const TextStyle(
+                                color: AppColors.blue,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _infoRow(Icons.book_outlined, item.ecue),
+                      const SizedBox(height: 6),
+                      _infoRow(Icons.school_outlined, "Classe : ${item.classe}"),
+                      const SizedBox(height: 6),
+                      _infoRow(Icons.access_time, "${_formatTime(item.heureDebut)} - ${_formatTime(item.heureFin)}"),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DetailHistorique(item: item),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Text("Détails",
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(String time) {
+    if (time.length >= 5) {
+      return time.substring(0, 5);
+    }
+    return time;
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: AppColors.black,
+              fontSize: 14,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

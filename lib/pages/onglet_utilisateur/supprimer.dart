@@ -28,7 +28,8 @@ class _SupprimerState extends State<Supprimer> {
           .from('surveillant')
           .select('id_surveillant, nom, prenom')
           // Filtrer et renvoyé les surveillant qui ont delete_at à NULL
-          //.filter('delete_at', 'is', null)   // C'est plus vraiement important puisque avec la sécurité RLS configurée au niveau de la table surveillant de la base de donnée, le select ne renvoyera que les surveillants dont les comptes sont actif (dont la colonne delete_at est NULL)
+          .filter('delete_at', 'is', null)   
+          .eq('role', 'adjoint')
           .order('nom, prenom');
 
       if (!mounted) return;
@@ -104,8 +105,15 @@ class _SupprimerState extends State<Supprimer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Supprimer un surveillant'),
-        backgroundColor: AppColors.red,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        ),
+        title: const Text('Supprimer un surveillant',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+        backgroundColor: Color(0xFFC62828),
       ),
       body: _loading && _surveillants.isEmpty
           ? const Center(child: CircularProgressIndicator())

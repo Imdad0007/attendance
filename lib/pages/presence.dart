@@ -178,12 +178,12 @@ class _PresenceState extends State<Presence> {
     final currentYear = now.year;
     final currentMonth = now.month;
 
-    // Academic year typically starts in September (month 9)
+    // L'année académique commence en Septembre (mois 9)
     if (currentMonth >= 9) {
-      // September to December
+      // Septembre à Décembre
       return '$currentYear-${currentYear + 1}';
     } else {
-      // January to July
+      // Janvier à Août
       return '${currentYear - 1}-$currentYear';
     }
   }

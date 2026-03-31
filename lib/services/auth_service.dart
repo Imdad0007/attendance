@@ -21,7 +21,7 @@ class AuthService {
           .from('surveillant')
           .select()
           .eq('username', username)
-          .eq('mdp', password) // Vérifie bien que ta colonne s'appelle 'mdp'
+          .eq('mdp', password).filter('delete_at', 'is', null) // Vérifie bien que ta colonne s'appelle 'mdp'
           .maybeSingle(); // Retourne null si pas trouvé au lieu de crash
 
       if (response == null) {

@@ -38,6 +38,7 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   final TextEditingController _passwordController = TextEditingController();
   bool showConfirmDialog = false;
+  bool _isSaving = false; // Nouvel état pour éviter les doubles clics
 
   @override
   void initState() {
@@ -154,7 +155,7 @@ class _ClassListState extends ConsumerState<ClassList> {
                 ),
 
                 // ================= LOGIQUE METIER =================
-                onPressed: () async {
+                onPressed: _isSaving ? null : () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
                   final dialogNavigator = Navigator.of(dialogContext);
@@ -172,41 +173,33 @@ class _ClassListState extends ConsumerState<ClassList> {
                     return;
                   }
 
-                  final AuthResult result = await authService.signIn(
-                    username,
-                    _passwordController.text,
-                  );
+                  // Passer en mode chargement
+                  if (mounted) setState(() => _isSaving = true);
 
-                  if (!mounted) return;
+                  try {
+                    final AuthResult result = await authService.signIn(
+                      username,
+                      _passwordController.text,
+                    );
 
-                  if (result.status == AuthStatus.onlineSuccess) {
-                    try {
+                    if (!mounted) return;
+
+                    if (result.status == AuthStatus.onlineSuccess) {
                       // ====== PREPARATION ======
-                      final idSurveillant = ref
-                          .read(userProvider)!
-                          .idSurveillant;
-
-                      final heureDebutStr =
-                          '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
-
-                      final heureFinStr =
-                          '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
-
+                      final idSurveillant = ref.read(userProvider)!.idSurveillant;
+                      final heureDebutStr = '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
+                      final heureFinStr = '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
                       final now = DateTime.now();
                       final dateSeanceStr = now.toIso8601String();
 
                       // ====== INSERT SEANCE ======
-                      final seanceResponse = await supabase
-                          .from('seance')
-                          .insert({
-                            'id_ecue': widget.idEcue,
-                            'id_surveillant': idSurveillant,
-                            'heure_debut': heureDebutStr,
-                            'heure_fin': heureFinStr,
-                            'date_seance': dateSeanceStr,
-                          })
-                          .select('id_seance')
-                          .single();
+                      final seanceResponse = await supabase.from('seance').insert({
+                        'id_ecue': widget.idEcue,
+                        'id_surveillant': idSurveillant,
+                        'heure_debut': heureDebutStr,
+                        'heure_fin': heureFinStr,
+                        'date_seance': dateSeanceStr,
+                      }).select('id_seance').single();
 
                       final idSeance = seanceResponse['id_seance'];
 
@@ -223,18 +216,13 @@ class _ClassListState extends ConsumerState<ClassList> {
 
                       // ====== WHATSAPP ======
                       final sessionDate = DateFormat('dd/MM/yyyy').format(now);
-
-                      final coursehour =
-                          '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}'
-                          '-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+                      final coursehour = '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
 
                       for (final student in students) {
-                        if (student['isAbsent'] &&
-                            student['parentPhoneNumber'] != 'N/A') {
+                        if (student['isAbsent'] && student['parentPhoneNumber'] != 'N/A') {
                           WhatsAppService.sendAbsenceTemplate(
                             phone: student['parentPhoneNumber'],
-                            studentName:
-                                '${student['nom']} ${student['prenom']}',
+                            studentName: '${student['nom']} ${student['prenom']}',
                             dateAbsence: sessionDate,
                             courseName: widget.ecueLabel,
                             coursehour: coursehour,
@@ -247,65 +235,34 @@ class _ClassListState extends ConsumerState<ClassList> {
                       toggleDialog();
                       _passwordController.clear();
 
-                      messenger
-                          .showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Enregistrement validé !",
-                                style: TextStyle(
-                                  color: AppColors.black,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              backgroundColor: AppColors.green,
-                            ),
-                          )
-                          .closed
-                          .then((_) {
-                            navigator.pop();
-                          });
-                    } catch (e) {
                       messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Erreur d'enregistrement",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          backgroundColor: AppColors.red,
+                        const SnackBar(
+                          content: Text("Enregistrement validé !", style: TextStyle(color: AppColors.black, fontSize: 16)),
+                          backgroundColor: AppColors.green,
                         ),
+                      ).closed.then((_) {
+                        navigator.pop();
+                      });
+                    } else if (result.status == AuthStatus.invalidCredentials) {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text("Mot de passe incorrect", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
+                      );
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text("Erreur de connexion", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
                       );
                     }
-                  } else if (result.status == AuthStatus.invalidCredentials) {
+                  } catch (e) {
                     messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Mot de passe incorrect",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        backgroundColor: AppColors.red,
-                      ),
+                      const SnackBar(content: Text("Erreur d'enregistrement", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
                     );
-                  } else {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Erreur de connexion",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        backgroundColor: AppColors.red,
-                      ),
-                    );
+                  } finally {
+                    if (mounted) setState(() => _isSaving = false);
                   }
                 },
-
-                child: const Text(
-                  "Valider",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                  ),
-                ),
+                child: _isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Valider", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.white)),
               ),
             ),
           ],
