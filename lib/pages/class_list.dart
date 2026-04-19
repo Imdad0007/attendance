@@ -42,6 +42,7 @@ class ClassList extends ConsumerStatefulWidget {
 class _ClassListState extends ConsumerState<ClassList> {
   late List<Map<String, dynamic>> students;
   bool showConfirmDialog = false;
+  bool showSignatureDialog = false;
   bool _isSaving = false;
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
@@ -157,6 +158,7 @@ class _ClassListState extends ConsumerState<ClassList> {
           notificationResults.where((sent) => !sent).length;
 
       if (mounted) {
+        setState(() => _isSaving = false);
         context.go('/success', extra: failedNotifications);
       }
     } catch (e) {
@@ -194,7 +196,8 @@ class _ClassListState extends ConsumerState<ClassList> {
                 ),
               ],
             ),
-            if (showConfirmDialog) _confirmDialog(),
+           if (showConfirmDialog) _confirm(),
+           if (showSignatureDialog) _confirmDialog(),
           ],
         ),
       ),
@@ -297,7 +300,7 @@ class _ClassListState extends ConsumerState<ClassList> {
               child: Transform.scale(
                 scale: 1.5,
                 child: Checkbox(
-                  value: students[index]['isAbsent'] as bool,
+                  value: students[index]['isAbsent'] ?? false,
                   activeColor: AppColors.primary,
                   onChanged: (val) => setState(
                     () => students[index]['isAbsent'] = val ?? false,
@@ -350,6 +353,135 @@ class _ClassListState extends ConsumerState<ClassList> {
     );
   }
 
+  // --- WIDGET DU DIALOGUE POUR LA CONFIRMATION  ---
+
+  Widget _confirm() {
+    return SizedBox.expand(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8), // L'effet de flou
+        child: Container(
+          color: AppColors.black.withAlpha(51), // Teinte sombre légère
+          child: Center(
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: MediaQuery.of(context).size.height * 0.8,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.white.withAlpha(76), // Fond semi-transparent
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: AppColors.white.withAlpha(51)),
+              ),
+              child: Column(
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: GestureDetector(
+                      onTap: toggleDialog,
+                      child: const Icon(
+                        Icons.cancel_outlined,
+                        color: AppColors.black,
+                        size: 35,
+                      ),
+                    ),
+                  ),
+
+                  if (!students.any((student) => student['isAbsent'] == true))
+                    const Center(
+                      child: Text(
+                        "AUCUNE ABSENCE",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    )
+                  else
+                    const Center(
+                      child: Text(
+                        "LES ABSENTS :",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+
+                  Expanded(
+                    child: ListView(
+                      children: students
+                          .where((s) => s['isAbsent'])
+                          .map(
+                            (s) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                "- ${s['nom']}  ${s['prenom']}",
+                                style: const TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _dialogButton("Confirmer", Icons.check, () {
+                        // ACTION CONFIRMER
+                        setState(() {
+                          showConfirmDialog = false;
+                          showSignatureDialog = true;
+                        }); // Appelle le dialogue de signature
+                      }),
+                      _dialogButton("Annuler", Icons.cancel, () {
+                        toggleDialog(); // ACTION ANNULER
+                      }),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogButton(String label, IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: AppColors.blue,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: AppColors.white),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
   Widget _confirmDialog() {
     return SizedBox.expand(
       child: BackdropFilter(
@@ -378,7 +510,11 @@ class _ClassListState extends ConsumerState<ClassList> {
                         ),
                       ),
                       IconButton(
-                        onPressed: toggleDialog,
+                        onPressed: () {
+                        setState(() {
+                          showSignatureDialog = false;
+                        });
+                      },
                         icon: const Icon(Icons.close, size: 30),
                       ),
                     ],
@@ -440,3 +576,8 @@ class _ClassListState extends ConsumerState<ClassList> {
     );
   }
 }
+
+
+
+
+  
