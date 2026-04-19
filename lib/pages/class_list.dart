@@ -197,7 +197,7 @@ class _ClassListState extends ConsumerState<ClassList> {
               ],
             ),
            if (showConfirmDialog) _confirm(),
-           if (showSignatureDialog) _confirmDialog(),
+           if (showSignatureDialog) _signatureDialog(),
           ],
         ),
       ),
@@ -482,7 +482,7 @@ class _ClassListState extends ConsumerState<ClassList> {
   }
 
 
-  Widget _confirmDialog() {
+  Widget _signatureDialog() {
     return SizedBox.expand(
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
