@@ -22,12 +22,6 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
 
-    if (index == 2) {
-      final isAdmin = ref.read(isAdminProvider);
-
-      if (isAdmin) {}
-    }
-
     setState(() {
       _selectedIndex = index;
       _history.remove(index);
@@ -38,44 +32,52 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = ref.watch(isAdminProvider);
-    final isAdjoint = ref.watch(isAdjointProvider);
+    final isSurveillant = ref.watch(isSurveillantProvider);
 
-    // Pages dynamiques selon rôle
-    final pages = [
-      HomePage(
-        onStartCall: () => _onItemTapped(1),
-      ),
-      if (isAdjoint) Presence(),
-      const Historique(),
-      if (isAdmin) const Creation(), // 👈 page supplémentaire
-      const Profil(),
-    ];
+    // Construction dynamique de la liste des pages et des items
+    final List<Widget> pages = [];
+    final List<BottomNavigationBarItem> navItems = [];
 
-    final navItems = [
-      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+    // 1. ACCUEIL (Commun)
+    pages.add(HomePage(onStartCall: () => _onItemTapped(1)));
+    navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'));
 
-      if (isAdjoint)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.check_circle),
-          label: 'Presence',
-        ),
+    // 2. PRESENCE (Uniquement Surveillant)
+    if (isSurveillant) {
+      pages.add(Presence());
+      navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Presence'));
+    }
 
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.history),
-        label: 'Historique',
-      ),
+    // 3. HISTORIQUE (Commun)
+    pages.add(const Historique());
+    navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historique'));
 
-      if (isAdmin)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.person_add_alt_1_outlined),
-          label: 'Utilisateurs',
-        ),
+    // 4. UTILISATEURS (Uniquement Admin)
+    if (isAdmin) {
+      pages.add(const Creation());
+      navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined), label: 'Utilisateurs'));
+    }
 
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.account_circle),
-        label: 'Profil',
-      ),
-    ];
+    // 5. PROFIL (Commun)
+    pages.add(const Profil());
+    navItems.add(const BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Profil'));
+
+    final safeIndex = navItems.isEmpty
+        ? 0
+        : _selectedIndex.clamp(0, navItems.length - 1);
+
+    if (safeIndex != _selectedIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selectedIndex = safeIndex;
+          _history.removeWhere((index) => index >= navItems.length);
+          if (_history.isEmpty) {
+            _history.add(_selectedIndex);
+          }
+        });
+      });
+    }
 
     return PopScope(
       canPop: _history.length <= 1,
@@ -84,7 +86,8 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
         if (_history.length > 1) {
           setState(() {
             _history.removeLast();
-            _selectedIndex = _history.last;
+            // On s'assure que l'index existe toujours dans la nouvelle liste
+            _selectedIndex = _history.last < navItems.length ? _history.last : 0;
           });
         }
       },
@@ -110,10 +113,10 @@ class _MainNavigationBarState extends ConsumerState<MainNavigationBar> {
             ),
           ),
         ),
-        body: IndexedStack(index: _selectedIndex, children: pages),
+        body: IndexedStack(index: safeIndex, children: pages),
         bottomNavigationBar: BottomNavigationBar(
           items: navItems,
-          currentIndex: _selectedIndex,
+          currentIndex: safeIndex,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.black,
           onTap: _onItemTapped,

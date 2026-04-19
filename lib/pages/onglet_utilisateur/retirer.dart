@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:attendance/composants/notification_ui.dart';
 
-class Supprimer extends StatefulWidget {
-  const Supprimer({super.key});
+class Retirer extends StatefulWidget {
+  const Retirer({super.key});
 
   @override
-  State<Supprimer> createState() => _SupprimerState();
+  State<Retirer> createState() => _RetirerState();
 }
 
-class _SupprimerState extends State<Supprimer> {
+class _RetirerState extends State<Retirer> {
   final SupabaseClient _client = Supabase.instance.client;
   bool _loading = false;
   List<Map<String, dynamic>> _surveillants = [];
@@ -27,10 +28,9 @@ class _SupprimerState extends State<Supprimer> {
       final List<dynamic> response = await _client
           .from('surveillant')
           .select('id_surveillant, nom, prenom')
-          // Filtrer et renvoyé les surveillant qui ont delete_at à NULL
-          .filter('delete_at', 'is', null)   
-          .eq('role', 'adjoint')
-          .order('nom, prenom');
+          .filter('delete_at', 'is', null)
+          .eq('role', 'surveillant')
+          .order('nom', ascending: true);
 
       if (!mounted) return;
 
@@ -41,28 +41,25 @@ class _SupprimerState extends State<Supprimer> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      debugPrint("Erreur de chargement: $e");
+      AppNotification.error("Erreur de chargement", error: e);
     }
   }
 
-  Future<void> _deleteSurveillant(int id, String nomComplet) async {
+  Future<void> _handleRetrait(int id, String nomComplet) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Confirmation'),
-        content: Text('Voulez-vous vraiment supprimer $nomComplet ?'),
+        content: Text('Voulez-vous vraiment Retirer $nomComplet ?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Supprimer',
-              style: TextStyle(color: Colors.white),
-            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Retirer', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -73,8 +70,6 @@ class _SupprimerState extends State<Supprimer> {
     setState(() => _loading = true);
 
     try {
-      // Dans les nouvelles versions, update() ne renvoie pas d'objet .error
-      // Si ça échoue, une exception est levée.
       await _client
           .from('surveillant')
           .update({'delete_at': DateTime.now().toIso8601String()})
@@ -82,22 +77,13 @@ class _SupprimerState extends State<Supprimer> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Surveillant supprimé avec succès !',
-            style: TextStyle(color: AppColors.black, fontSize: 16),
-          ),
-          backgroundColor: AppColors.green,
-        ),
-      );
-
-      // Recharge la liste après suppression
+      AppNotification.success("Surveillant retiré avec succès !");
+      
       _fetchSurveillants();
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      debugPrint("Erreur lors de la suppression: $e");
+      AppNotification.error("Erreur lors du retrait", error: e);
     }
   }
 
@@ -110,17 +96,35 @@ class _SupprimerState extends State<Supprimer> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
-        title: const Text('Supprimer un surveillant',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-        backgroundColor: Color(0xFFC62828),
+        title: const Text(
+          'Retirer un surveillant',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFFC62828),
       ),
       body: _loading && _surveillants.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _fetchSurveillants,
               child: _surveillants.isEmpty
-                  ? const Center(child: Text("Aucun surveillant disponible"))
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_off_outlined,
+                              size: 80, color: AppColors.grey.withOpacity(0.3)),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "Aucun surveillant trouvé",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: _surveillants.length,
@@ -132,7 +136,7 @@ class _SupprimerState extends State<Supprimer> {
                         return ListTile(
                           title: Text(
                             nomComplet,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -143,7 +147,7 @@ class _SupprimerState extends State<Supprimer> {
                               color: Colors.red,
                               size: 40.0,
                             ),
-                            onPressed: () => _deleteSurveillant(
+                            onPressed: () => _handleRetrait(
                               surveillant['id_surveillant'],
                               nomComplet,
                             ),

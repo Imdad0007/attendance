@@ -1,17 +1,21 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:attendance/composants/colors.dart';
+import 'dart:ui' as ui;
 import 'package:attendance/composants/button.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:attendance/providers/user_provider.dart'; // Le provider qui permet d'avoir accès aux informations des utilisateurs connectés. Il faut l'inclure dans le fichier où l'on veut utilisé les informations du surveillant connecté. Il est toujours accompagné de l'inclusion du package de riverpod
-import 'package:attendance/services/auth_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:attendance/composants/colors.dart';
+import 'package:attendance/composants/notification_ui.dart';
+import 'package:go_router/go_router.dart';
+import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/whatsapp_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:signature/signature.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ClassList extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> students;
   final int idEcue;
+  final int idProf;
+  final int idSalle;
   final TimeOfDay heureDebut;
   final TimeOfDay heureFin;
   final String niveauLabel;
@@ -22,6 +26,8 @@ class ClassList extends ConsumerStatefulWidget {
     super.key,
     required this.students,
     required this.idEcue,
+    required this.idProf,
+    required this.idSalle,
     required this.heureDebut,
     required this.heureFin,
     required this.niveauLabel,
@@ -35,15 +41,16 @@ class ClassList extends ConsumerStatefulWidget {
 
 class _ClassListState extends ConsumerState<ClassList> {
   late List<Map<String, dynamic>> students;
-
-  final TextEditingController _passwordController = TextEditingController();
   bool showConfirmDialog = false;
-  bool _isSaving = false; // Nouvel état pour éviter les doubles clics
+  bool _isSaving = false;
+  final SignatureController _signatureController = SignatureController(
+    penStrokeWidth: 3,
+    penColor: Colors.black,
+  );
 
   @override
   void initState() {
     super.initState();
-    // Initialize the local 'students' state with the passed data and add the 'isAbsent' flag.
     students = widget.students.map((s) => {...s, 'isAbsent': false}).toList();
   }
 
@@ -55,227 +62,115 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   @override
   void dispose() {
-    _passwordController.dispose();
+    _signatureController.dispose();
     super.dispose();
   }
 
-  // Fonction pour afficher le dialogue de confirmation de mot de passe
-  void _showPasswordVerification(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final authService = AuthService();
-        final supabase = Supabase.instance.client;
+  Future<void> _handleSave() async {
+    if (_signatureController.isEmpty) {
+      AppNotification.warning("La signature du professeur est requise pour valider");
+      return;
+    }
 
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    setState(() => _isSaving = true);
 
-          // ================= TITLE =================
-          title: Row(
-            children: const [
-              SizedBox(width: 10),
-              Text(
-                "Vérification requise",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
+    try {
+      final supabase = Supabase.instance.client;
+      final user = ref.read(userProvider);
+      if (user == null) {
+        throw Exception("Utilisateur non trouvé");
+      }
 
-          // ================= CONTENT =================
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Veuillez confirmer votre mot de passe pour valider l'enregistrement.",
-                style: TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-              const SizedBox(height: 16),
+      final signatureBytes = await _signatureController.toPngBytes();
+      if (signatureBytes == null) {
+        throw Exception("Erreur signature");
+      }
 
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: "Mot de passe",
-                  prefixIcon: const Icon(Icons.lock),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
+      final heureDebutStr =
+          '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
+      final heureFinStr =
+          '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
+      final now = DateTime.now();
 
-          // ================= ACTIONS =================
-          actions: [
-            SizedBox(
-              height: 42,
-              child: TextButton(
-                onPressed: () {
-                  _passwordController.clear();
-                  Navigator.pop(dialogContext);
-                },
-                style: TextButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text(
-                  "Annuler",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.black,
-                  ),
-                ),
-              ),
+      final seanceResponse = await supabase
+          .from('seance')
+          .insert({
+            'id_ecue': widget.idEcue,
+            'id_prof': widget.idProf,
+            'id_salle': widget.idSalle,
+            'heure_debut': heureDebutStr,
+            'heure_fin': heureFinStr,
+            'date_seance': now.toIso8601String().split('T')[0],
+          })
+          .select('id_seance')
+          .single();
+
+      final idSeance = seanceResponse['id_seance'];
+
+      final presenceResponse = await supabase
+          .from('presence')
+          .insert({
+            'id_seance': idSeance,
+            'id_surveillant': user.idSurveillant,
+            'signature_prof': signatureBytes,
+          })
+          .select('id_presence')
+          .single();
+
+      final idPresence = presenceResponse['id_presence'];
+
+      final detailsData = students
+          .map(
+            (s) => {
+              'id_presence': idPresence,
+              'matricule': s['matricule'],
+              'statut': s['isAbsent'] ? 'absent' : 'present',
+            },
+          )
+          .toList();
+
+      await supabase.from('details_presence').insert(detailsData);
+
+      final sessionDate = DateFormat('dd/MM/yyyy').format(now);
+      final courseHour =
+          '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+
+      final notificationTasks = <Future<bool>>[];
+      for (final s in students) {
+        if (s['isAbsent'] && s['parentPhoneNumber'] != 'N/A') {
+          notificationTasks.add(
+            WhatsAppService.sendAbsenceTemplate(
+              phone: s['parentPhoneNumber'],
+              studentName: '${s['nom']} ${s['prenom']}',
+              dateAbsence: sessionDate,
+              courseName: widget.ecueLabel,
+              coursehour: courseHour,
             ),
+          );
+        }
+      }
 
-            SizedBox(
-              height: 42,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
+      final notificationResults = notificationTasks.isEmpty
+          ? const <bool>[]
+          : await Future.wait(notificationTasks);
+      final failedNotifications =
+          notificationResults.where((sent) => !sent).length;
 
-                // ================= LOGIQUE METIER =================
-                onPressed: _isSaving ? null : () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-                  final dialogNavigator = Navigator.of(dialogContext);
-
-                  final String? username = ref.read(userProvider)?.username;
-
-                  if (username == null) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text("Utilisateur non trouvé"),
-                        backgroundColor: AppColors.red,
-                      ),
-                    );
-                    dialogNavigator.pop();
-                    return;
-                  }
-
-                  // Passer en mode chargement
-                  if (mounted) setState(() => _isSaving = true);
-
-                  try {
-                    final AuthResult result = await authService.signIn(
-                      username,
-                      _passwordController.text,
-                    );
-
-                    if (!mounted) return;
-
-                    if (result.status == AuthStatus.onlineSuccess) {
-                      // ====== PREPARATION ======
-                      final idSurveillant = ref.read(userProvider)!.idSurveillant;
-                      final heureDebutStr = '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
-                      final heureFinStr = '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
-                      final now = DateTime.now();
-                      final dateSeanceStr = now.toIso8601String();
-
-                      // ====== INSERT SEANCE ======
-                      final seanceResponse = await supabase.from('seance').insert({
-                        'id_ecue': widget.idEcue,
-                        'id_surveillant': idSurveillant,
-                        'heure_debut': heureDebutStr,
-                        'heure_fin': heureFinStr,
-                        'date_seance': dateSeanceStr,
-                      }).select('id_seance').single();
-
-                      final idSeance = seanceResponse['id_seance'];
-
-                      // ====== INSERT PRESENCE ======
-                      final presenceData = students.map((student) {
-                        return {
-                          'id_seance': idSeance,
-                          'matricule': student['matricule'],
-                          'statut': student['isAbsent'] ? 'absent' : 'present',
-                        };
-                      }).toList();
-
-                      await supabase.from('presence').insert(presenceData);
-
-                      // ====== WHATSAPP ======
-                      final sessionDate = DateFormat('dd/MM/yyyy').format(now);
-                      final coursehour = '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
-
-                      for (final student in students) {
-                        if (student['isAbsent'] && student['parentPhoneNumber'] != 'N/A') {
-                          WhatsAppService.sendAbsenceTemplate(
-                            phone: student['parentPhoneNumber'],
-                            studentName: '${student['nom']} ${student['prenom']}',
-                            dateAbsence: sessionDate,
-                            courseName: widget.ecueLabel,
-                            coursehour: coursehour,
-                          );
-                        }
-                      }
-
-                      // ====== UI FEEDBACK ======
-                      dialogNavigator.pop();
-                      toggleDialog();
-                      _passwordController.clear();
-
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text("Enregistrement validé !", style: TextStyle(color: AppColors.black, fontSize: 16)),
-                          backgroundColor: AppColors.green,
-                        ),
-                      ).closed.then((_) {
-                        navigator.pop();
-                      });
-                    } else if (result.status == AuthStatus.invalidCredentials) {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text("Mot de passe incorrect", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
-                      );
-                    } else {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text("Erreur de connexion", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
-                      );
-                    }
-                  } catch (e) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text("Erreur d'enregistrement", style: TextStyle(fontSize: 16)), backgroundColor: AppColors.red),
-                    );
-                  } finally {
-                    if (mounted) setState(() => _isSaving = false);
-                  }
-                },
-                child: _isSaving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text("Valider", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.white)),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+      if (mounted) {
+        context.go('/success', extra: failedNotifications);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        AppNotification.error("Erreur lors de l'enregistrement de la présence", error: e);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-
       body: SafeArea(
         child: Stack(
           children: [
@@ -286,24 +181,20 @@ class _ClassListState extends ConsumerState<ClassList> {
                 Expanded(
                   child: Container(
                     color: AppColors.white,
-                    child: ListView.separated(
-                      itemCount: students.length + 1,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        if (index < students.length) {
-                          return _studentRow(index);
-                        } else {
-                          return _registerButton();
-                        }
-                      },
-                    ),
+                    child: students.isEmpty
+                        ? _emptyState()
+                        : ListView.separated(
+                            itemCount: students.length + 1,
+                            separatorBuilder: (c, i) =>
+                                const Divider(height: 1),
+                            itemBuilder: (c, i) =>
+                                i < students.length ? _studentRow(i) : _registerButton(),
+                          ),
                   ),
                 ),
               ],
             ),
-
-            if (showConfirmDialog) _confirm(),
+            if (showConfirmDialog) _confirmDialog(),
           ],
         ),
       ),
@@ -315,45 +206,36 @@ class _ClassListState extends ConsumerState<ClassList> {
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        border: Border(bottom: BorderSide(color: AppColors.grey, width: 1.5)),
+        border: const Border(
+          bottom: BorderSide(color: AppColors.grey, width: 1.5),
+        ),
       ),
       child: Row(
         children: [
-          Flexible(
-            child: Text(
-              widget.niveauLabel,
-              style: const TextStyle(color: AppColors.white, fontSize: 16),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          _headerChip(widget.niveauLabel),
           const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
-          Flexible(
-            child: Text(
-              widget.filiereLabel,
-              style: const TextStyle(color: AppColors.white, fontSize: 16),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          _headerChip(widget.filiereLabel),
           const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
-          Flexible(
-            child: Text(
-              widget.ecueLabel,
-              style: const TextStyle(color: AppColors.white, fontSize: 16),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          _headerChip(widget.ecueLabel),
         ],
       ),
     );
   }
 
+  Widget _headerChip(String text) => Flexible(
+        child: Text(
+          text,
+          style: const TextStyle(color: AppColors.white, fontSize: 16),
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+
   Widget _tableHead() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-      decoration: BoxDecoration(gradient: AppColors.primaryGradient),
-
-      child: Row(
-        children: const [
+      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+      child: const Row(
+        children: [
           Expanded(
             flex: 3,
             child: Text(
@@ -377,12 +259,12 @@ class _ClassListState extends ConsumerState<ClassList> {
           Expanded(
             flex: 2,
             child: Text(
-              "STATUT",
+              "ABSENT",
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.white,
                 fontWeight: FontWeight.bold,
               ),
-              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -392,21 +274,21 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   Widget _studentRow(int index) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Row(
         children: [
           Expanded(
             flex: 3,
             child: Text(
               students[index]['nom'],
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
             flex: 4,
             child: Text(
               students[index]['prenom'],
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
           ),
           Expanded(
@@ -415,11 +297,11 @@ class _ClassListState extends ConsumerState<ClassList> {
               child: Transform.scale(
                 scale: 1.5,
                 child: Checkbox(
-                  value: students[index]['isAbsent'],
+                  value: students[index]['isAbsent'] as bool,
                   activeColor: AppColors.primary,
-                  onChanged: (val) {
-                    setState(() => students[index]['isAbsent'] = val);
-                  },
+                  onChanged: (val) => setState(
+                    () => students[index]['isAbsent'] = val ?? false,
+                  ),
                 ),
               ),
             ),
@@ -431,143 +313,128 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   Widget _registerButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 300,
-          ), // Empêche le bouton d'être trop large
+          constraints: const BoxConstraints(maxWidth: 300),
           child: SizedBox(
             width: double.infinity,
-            child: Button(label: "Enregistrer", onPressed: toggleDialog),
+            child: Button(label: "CONTINUER", onPressed: toggleDialog),
           ),
         ),
       ),
     );
   }
 
-  // --- WIDGET DU DIALOGUE FLOTTANT  ---
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 80,
+            color: AppColors.grey.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "Aucun étudiant trouvé",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _confirm() {
+  Widget _confirmDialog() {
     return SizedBox.expand(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8), // L'effet de flou
+        filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          color: AppColors.black.withAlpha(51), // Teinte sombre légère
+          color: Colors.black.withValues(alpha: 0.4),
           child: Center(
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.85,
-              height: MediaQuery.of(context).size.height * 0.8,
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.height * 0.85,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.white.withAlpha(76), // Fond semi-transparent
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: AppColors.white.withAlpha(51)),
               ),
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: GestureDetector(
-                      onTap: toggleDialog,
-                      child: const Icon(
-                        Icons.cancel_outlined,
-                        color: AppColors.black,
-                        size: 35,
-                      ),
-                    ),
-                  ),
-
-                  if (!students.any((student) => student['isAbsent'] == true))
-                    const Center(
-                      child: Text(
-                        "AUCUNE ABSENCE",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    )
-                  else
-                    const Center(
-                      child: Text(
-                        "LES ABSENTS :",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-
-                  Expanded(
-                    child: ListView(
-                      children: students
-                          .where((s) => s['isAbsent'])
-                          .map(
-                            (s) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                "- ${s['nom']}  ${s['prenom']}",
-                                style: const TextStyle(
-                                  color: AppColors.black,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _dialogButton("Confirmer", Icons.check, () {
-                        // ACTION CONFIRMER
-                        _showPasswordVerification(
-                          context,
-                        ); // Appelle le dialogue de vérification
-                      }),
-                      _dialogButton("Annuler", Icons.cancel, () {
-                        toggleDialog(); // ACTION ANNULER
-                      }),
+                      const Text(
+                        "Signature du Professeur",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: toggleDialog,
+                        icon: const Icon(Icons.close, size: 30),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Émargement numérique requis pour valider la séance",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Signature(
+                          controller: _signatureController,
+                          backgroundColor: Colors.grey.shade50,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _signatureController.clear(),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        label: const Text(
+                          "Effacer",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Button(
+                      label: _isSaving
+                          ? "Enregistrement..."
+                          : "ENREGISTRER",
+                      onPressed: _isSaving ? null : _handleSave,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dialogButton(String label, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: AppColors.blue,
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: AppColors.white),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ],
         ),
       ),
     );

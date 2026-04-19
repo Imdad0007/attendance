@@ -1,0 +1,39 @@
+class AppConfig {
+  const AppConfig._();
+
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://fkvybbyrbktpetdyqymt.supabase.co',
+  );
+
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdnliYnlyYmt0cGV0ZHlxeW10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMTMwMTIsImV4cCI6MjA4NTY4OTAxMn0.W_5TT4lmAGoCck61kP36xJDRJSsLl5HOpITvRGEiwmA',
+  );
+
+  static const String whatsappPhoneNumberId = String.fromEnvironment(
+    'WHATSAPP_PHONE_NUMBER_ID',
+    defaultValue: '1001899229676106',
+  );
+
+  static const String whatsappToken = String.fromEnvironment(
+    'WHATSAPP_TOKEN',
+    defaultValue:
+        'EAAWdK9IJdl8BQo1WrzXiIQCcDugIKqOopK0cvZCOxYZC9uc3Y2hVLNgEubhlxEQE0PqywPfu2atGbpP5ZB7q3umuUh1uKfuJNl5Yioojub0luqOETXFnzJ2nyrZBn2LwgdeELD2XzGb5nAB2tFzCtaN7JYgCx3oah3xKNgishUmBQrye9ORySGun3fDtY89S0gZDZD',
+  );
+
+  // --- VARIABLES DYNAMIQUES (Chargées depuis Supabase) ---
+  static String greenApiIdInstance = 'ID_INSTANCE';
+  static String greenApiTokenInstance = 'API_TOKEN_INSTANCE';
+
+  /// Met à jour les configurations depuis la base de données
+  static void updateFromMap(Map<String, String> config) {
+    if (config.containsKey('green_api_id')) {
+      greenApiIdInstance = config['green_api_id']!;
+    }
+    if (config.containsKey('green_api_token')) {
+      greenApiTokenInstance = config['green_api_token']!;
+    }
+  }
+}

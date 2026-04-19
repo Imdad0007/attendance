@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+
+import 'package:attendance/composants/button.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/text_field.dart';
-import 'package:attendance/pages/main_navigation_bar.dart';
-import 'package:attendance/composants/button.dart';
-import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
+import 'package:attendance/composants/notification_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -15,14 +17,27 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  StreamSubscription<AuthState>? _authStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange
+        .listen((data) {
+          if (data.event == AuthChangeEvent.passwordRecovery) {
+            _showResetPasswordDialog();
+          }
+        });
+  }
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _authStateSubscription?.cancel();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -30,58 +45,137 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _handleLogin() async {
     if (_isLoading) return;
 
-    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
-      _showSnackBar("Veuillez remplir tous les champs.", AppColors.orange);
+    if (email.isEmpty || password.isEmpty) {
+      AppNotification.warning("Veuillez remplir tous les champs.");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Appel au service d'authentification
-      final authResult = await _authService.signIn(username, password);
+      final authResult = await _authService.signIn(email, password);
 
       if (!mounted) return;
 
-      if (authResult.user != null) {
-        // Sauvegarde de l'utilisateur dans le provider Riverpod
-        ref.read(userProvider.notifier).state = authResult.user;
-
-        // Navigation vers l'écran principal
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainNavigationBar()),
-        );
-      } else {
-        // Gestion des erreurs de connexion
-        String message = "Erreur de connexion.";
-        Color color = AppColors.red;
+      if (authResult.user == null) {
+        String message = authResult.message ?? "Erreur de connexion.";
+        NotificationType type = NotificationType.error;
 
         if (authResult.status == AuthStatus.invalidCredentials) {
-          message = "Nom d'utilisateur ou mot de passe incorrect.";
+          message = "Email ou mot de passe incorrect.";
         } else if (authResult.status == AuthStatus.noInternet) {
           message = "Vérifiez votre connexion internet.";
-          color = AppColors.orange;
+          type = NotificationType.warning;
+        } else if (authResult.status == AuthStatus.emailNotConfirmed) {
+          message = "Veuillez confirmer votre adresse email.";
+          type = NotificationType.warning;
         }
 
-        _showSnackBar(message, color);
+        AppNotification.show(message: message, type: type);
       }
     } catch (e) {
-      _showSnackBar("Une erreur technique est survenue.", AppColors.red);
+      if (!mounted) return;
+      AppNotification.error("Une erreur technique est survenue.", error: e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 16)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
+  void _showForgotPasswordDialog() {
+    final resetEmailController = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Réinitialisation"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Entrez votre email pour recevoir un lien de réinitialisation.",
+            ),
+            const SizedBox(height: 15),
+            Textfield(
+              controller: resetEmailController,
+              hintText: "Email",
+              obscureText: false,
+              icon: Icons.email_outlined,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = resetEmailController.text.trim();
+              if (email.isEmpty) return;
+
+              final success = await _authService.sendPasswordResetEmail(email);
+              if (!mounted) return;
+              if (!dialogContext.mounted) return;
+
+              Navigator.pop(dialogContext);
+              if (success) {
+                AppNotification.success("Email de réinitialisation envoyé !");
+              } else {
+                AppNotification.error("Erreur lors de l'envoi de l'email.");
+              }
+            },
+            child: const Text("Envoyer"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog() {
+    final newPasswordController = TextEditingController();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Nouveau mot de passe"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Veuillez définir votre nouveau mot de passe."),
+            const SizedBox(height: 15),
+            Textfield(
+              controller: newPasswordController,
+              hintText: "Nouveau mot de passe",
+              obscureText: true,
+              icon: Icons.lock_outline,
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              final newPassword = newPasswordController.text.trim();
+              if (newPassword.isEmpty) return;
+
+              try {
+                await Supabase.instance.client.auth.updateUser(
+                  UserAttributes(password: newPassword),
+                );
+                if (!mounted) return;
+                if (!dialogContext.mounted) return;
+
+                Navigator.pop(dialogContext);
+                AppNotification.success("Mot de passe mis à jour. Connectez-vous.");
+              } catch (e) {
+                if (!mounted) return;
+                AppNotification.error("Erreur lors de la mise à jour.", error: e);
+              }
+            },
+            child: const Text("Enregistrer"),
+          ),
+        ],
       ),
     );
   }
@@ -112,13 +206,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-
-                  // Utilise exactement le nom de ton composant (Textfield ou MyTextField)
                   Textfield(
-                    controller: _usernameController,
-                    hintText: "Nom d'utilisateur",
+                    controller: _emailController,
+                    hintText: "Email",
                     obscureText: false,
-                    icon: Icons.person_outline,
+                    icon: Icons.email_outlined,
                   ),
                   const SizedBox(height: 20),
                   Textfield(
@@ -127,11 +219,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     obscureText: true,
                     icon: Icons.lock_outline,
                   ),
-
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _showForgotPasswordDialog,
                       child: const Text(
                         'Mot de passe oublié ?',
                         style: TextStyle(
@@ -142,9 +233,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Button(label: "Se connecter", onPressed: _handleLogin),
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    Button(label: "SE CONNECTER", onPressed: _handleLogin),
                 ],
               ),
             ),

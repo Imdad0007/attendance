@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/carte.dart';
 import 'package:attendance/pages/onglet_utilisateur/creer.dart';
-import 'package:attendance/pages/onglet_utilisateur/supprimer.dart';
+import 'package:attendance/pages/onglet_utilisateur/retirer.dart';
 import 'package:attendance/pages/onglet_utilisateur/lister.dart';
 
 class Creation extends StatelessWidget {
@@ -70,14 +70,14 @@ class Creation extends StatelessWidget {
                     SizedBox(height: verticalSpacing),
 
                     Carte(
-                      label: "Supprimer un compte",
+                      label: "Retirer un compte",
                       icon: Icons.delete,
                       color: Color(0xFFC62828),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const Supprimer(),
+                            builder: (context) => const Retirer(),
                           ),
                         );
                       },

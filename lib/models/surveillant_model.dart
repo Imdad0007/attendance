@@ -1,20 +1,20 @@
 class Surveillant {
   final int? idSurveillant;
+  final String? authId; // UUID from Supabase Auth
   final String nom;
   final String prenom;
-  final String username;
+  final String email;
   final String? telephone;
   final String role;
-  final String? mdp;
 
   Surveillant({
     this.idSurveillant,
+    this.authId,
     required this.nom,
     required this.prenom,
-    required this.username,
+    required this.email,
     this.telephone,
     required this.role,
-    this.mdp,
   });
 
   // Pour l'affichage facile
@@ -22,33 +22,33 @@ class Surveillant {
 
   factory Surveillant.fromMap(Map<String, dynamic> map) {
     return Surveillant(
-      idSurveillant: map['id_surveillant'], // CORRIGÉ ici aussi
+      idSurveillant: map['id_surveillant'], 
+      authId: map['auth_id'],
       nom: map['nom'] ?? '',
       prenom: map['prenom'] ?? '',
-      username: map['username'] ?? '',
+      email: map['email'] ?? '',
       telephone: map['telephone'],
-      role: map['role'] ?? 'adjoint',
-      mdp: map['mdp'],
+      role: map['role'] ?? 'surveillant',
     );
   }
 
   Surveillant copyWith({
     int? idSurveillant,
+    String? authId,
     String? nom,
     String? prenom,
-    String? username,
+    String? email,
     String? telephone,
     String? role,
-    String? mdp,
   }) {
     return Surveillant(
       idSurveillant: idSurveillant ?? this.idSurveillant,
+      authId: authId ?? this.authId,
       nom: nom ?? this.nom,
       prenom: prenom ?? this.prenom,
-      username: username ?? this.username,
+      email: email ?? this.email,
       telephone: telephone ?? this.telephone,
       role: role ?? this.role,
-      mdp: mdp ?? this.mdp,
     );
   }
 }

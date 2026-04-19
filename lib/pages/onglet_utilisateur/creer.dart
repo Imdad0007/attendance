@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/button2.dart';
+import 'package:attendance/composants/notification_ui.dart';
 
 class Creer extends StatefulWidget {
   const Creer({super.key});
@@ -13,11 +14,12 @@ class Creer extends StatefulWidget {
 class _CreerState extends State<Creer> {
   final _formKey = GlobalKey<FormState>();
 
+  final _emailController = TextEditingController();
   final _nomController = TextEditingController();
   final _prenomController = TextEditingController();
   final _telephoneController = TextEditingController(text: '22901');
-  final _usernameController = TextEditingController();
   final _mdpController = TextEditingController();
+  String _selectedRole = 'surveillant'; // Rôle par défaut
 
   bool _loading = false;
 
@@ -27,45 +29,47 @@ class _CreerState extends State<Creer> {
     setState(() => _loading = true);
 
     try {
+      final email = _emailController.text.trim();
       final password = _mdpController.text.trim();
+      final nom = _nomController.text.trim();
+      final prenom = _prenomController.text.trim();
+      final telephone = _telephoneController.text.trim();
 
-      await Supabase.instance.client.from('surveillant').insert({
-        'nom': _nomController.text.trim(),
-        'prenom': _prenomController.text.trim(),
-        'telephone': _telephoneController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'mdp': password,
-        'role': 'adjoint', // Forcer le rôle adjoint par défaut
-      });
+      // Créer le compte dans Supabase Auth avec le ROLE dans les meta-données
+      final authResponse = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'nom': nom,
+          'prenom': prenom,
+          'telephone': telephone,
+          'role': _selectedRole, // 'admin' ou 'surveillant'
+        },
+      );
+
+      if (authResponse.user == null) {
+        throw Exception("Erreur lors de la création du compte auth");
+      }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Surveillant créé avec succès !',
-              style: TextStyle(color: AppColors.black, fontSize: 16),
-            ),
-            backgroundColor: AppColors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.pop(context);
-        });
+        AppNotification.success("Compte $_selectedRole créé avec succès !");
+        Navigator.pop(context);
       }
     } catch (e) {
-      String errorMsg = "Erreur lors de la création";
-      if (e.toString().contains("duplicate key")) {
-        errorMsg = "Ce nom d'utilisateur est déjà pris";
+      String errorMsg = "Impossible de créer l'utilisateur";
+      
+      if (e is AuthException) {
+        if (e.message.contains("Database error saving new user")) {
+          errorMsg = "Cet email ou ce numéro de téléphone est déjà utilisé par un autre compte.";
+        } else {
+          errorMsg = e.message;
+        }
+      } else if (e.toString().contains("duplicate key")) {
+        errorMsg = "Cet email ou ce numéro de téléphone est déjà utilisé.";
       }
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: AppColors.red,
-          ),
-        );
+        AppNotification.error(errorMsg, error: e);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -84,7 +88,7 @@ class _CreerState extends State<Creer> {
         title: const Text("Créer un compte",
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
-        backgroundColor: Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF2E7D32),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -92,6 +96,21 @@ class _CreerState extends State<Creer> {
           key: _formKey,
           child: Column(
             children: [
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: "Email",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                validator: (value) {
+                   if (value == null || value.isEmpty) return "Email requis";
+                   if (!value.contains('@')) return "Email invalide";
+                   return null;
+                },
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _nomController,
                 decoration: const InputDecoration(
@@ -128,16 +147,6 @@ class _CreerState extends State<Creer> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: "Nom d'utilisateur",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Nom d'utilisateur requis" : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _mdpController,
                 obscureText: true,
                 decoration: const InputDecoration(
@@ -148,10 +157,28 @@ class _CreerState extends State<Creer> {
                     ? "Mot de passe requis"
                     : null,
               ),
+              const SizedBox(height: 16),
+              
+              // --- SÉLECTEUR DE RÔLE ---
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: const InputDecoration(
+                  labelText: "Rôle",
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'surveillant', child: Text("Surveillant")),
+                  DropdownMenuItem(value: 'admin', child: Text("Administrateur")),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedRole = val);
+                },
+              ),
+              
               const SizedBox(height: 24),
 
               Button2(
-                label: "Créer",
+                label: "CRÉE",
                 gradient: AppColors.greenGradient,
                 onPressed: _loading ? null : _creerSurveillant,
               ),
@@ -164,10 +191,10 @@ class _CreerState extends State<Creer> {
 
   @override
   void dispose() {
+    _emailController.dispose();
     _nomController.dispose();
     _prenomController.dispose();
     _telephoneController.dispose();
-    _usernameController.dispose();
     _mdpController.dispose();
     super.dispose();
   }
