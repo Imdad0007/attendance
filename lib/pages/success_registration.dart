@@ -3,16 +3,16 @@ import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
 import 'package:go_router/go_router.dart';
 
-class SuccessRegistration extends StatelessWidget {
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class SuccessRegistration extends ConsumerWidget {
   final int failedNotifications;
 
-  const SuccessRegistration({
-    super.key,
-    required this.failedNotifications,
-  });
+  const SuccessRegistration({super.key, required this.failedNotifications});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -20,7 +20,10 @@ class SuccessRegistration extends StatelessWidget {
         backgroundColor: AppColors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
-          onPressed: () => context.go('/'),
+          onPressed: () {
+            ref.read(navigationTabProvider.notifier).state = AppTab.presence;
+            context.go('/presence');
+          },
         ),
       ),
       body: Center(
@@ -46,7 +49,7 @@ class SuccessRegistration extends StatelessWidget {
                 "ENREGISTREMENT RÉUSSI",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: AppColors.black,
                   letterSpacing: 1.2,
@@ -67,7 +70,11 @@ class SuccessRegistration extends StatelessWidget {
               const SizedBox(height: 60),
               Button(
                 label: "TERMINER",
-                onPressed: () => context.go('/'),
+                onPressed: () {
+                  ref.read(navigationTabProvider.notifier).state =
+                      AppTab.presence;
+                  context.go('/presence');
+                },
               ),
             ],
           ),

@@ -8,6 +8,9 @@ import 'package:attendance/composants/notification_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:attendance/providers/user_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -43,42 +46,52 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    if (_isLoading) return;
-
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
+    // Validation simple
     if (email.isEmpty || password.isEmpty) {
-      AppNotification.warning("Veuillez remplir tous les champs.");
+      AppNotification.error("Veuillez remplir tous les champs.");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
+      // Note : On passe .text car votre AuthService attend probablement des String
+      // et non les contrôleurs directement.
       final authResult = await _authService.signIn(email, password);
 
       if (!mounted) return;
 
-      if (authResult.user == null) {
-        String message = authResult.message ?? "Erreur de connexion.";
-        NotificationType type = NotificationType.error;
+      if (authResult.status == AuthStatus.onlineSuccess &&
+          authResult.user != null) {
+        // 1. Mise à jour du profil (déclenche isAdminProvider et isSurveillantProvider)
+        ref.read(userProvider.notifier).state = authResult.user;
 
-        if (authResult.status == AuthStatus.invalidCredentials) {
-          message = "Email ou mot de passe incorrect.";
-        } else if (authResult.status == AuthStatus.noInternet) {
-          message = "Vérifiez votre connexion internet.";
-          type = NotificationType.warning;
-        } else if (authResult.status == AuthStatus.emailNotConfirmed) {
-          message = "Veuillez confirmer votre adresse email.";
-          type = NotificationType.warning;
+        // 2. CHOIX DE L'ONGLET DE DÉMARRAGE (Anti-flash)
+        // On définit l'onglet AVANT la navigation pour que MainNavigationBar lise le bon état dès le 1er frame
+        final String role = authResult.user!.role.toLowerCase();
+
+        if (role == 'admin') {
+          ref.read(navigationTabProvider.notifier).state = AppTab.dashboard;
+        } else {
+          ref.read(navigationTabProvider.notifier).state = AppTab.home;
         }
 
-        AppNotification.show(message: message, type: type);
+        // 3. Navigation vers l'interface principale
+        // Utilisez context.go('/') ou votre route principale
+        context.go('/');
+      } else {
+        // Gestion des messages d'erreurs
+        String message = authResult.message ?? "Erreur de connexion.";
+        if (authResult.status == AuthStatus.invalidCredentials) {
+          message = "Email ou mot de passe incorrect.";
+        }
+        AppNotification.error(message);
       }
     } catch (e) {
-      if (!mounted) return;
-      AppNotification.error("Une erreur technique est survenue.", error: e);
+      AppNotification.error("Une erreur technique est survenue.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -167,10 +180,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 if (!dialogContext.mounted) return;
 
                 Navigator.pop(dialogContext);
-                AppNotification.success("Mot de passe mis à jour. Connectez-vous.");
+                AppNotification.success(
+                  "Mot de passe mis à jour. Connectez-vous.",
+                );
               } catch (e) {
                 if (!mounted) return;
-                AppNotification.error("Erreur lors de la mise à jour.", error: e);
+                AppNotification.error(
+                  "Erreur lors de la mise à jour.",
+                  error: e,
+                );
               }
             },
             child: const Text("Enregistrer"),

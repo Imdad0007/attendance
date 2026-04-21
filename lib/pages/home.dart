@@ -90,7 +90,9 @@ class HomePage extends ConsumerWidget {
                       child: Row(
                         children: [
                           Icon(
-                            isAdmin ? Icons.history : Icons.play_circle_outline,
+                            isAdmin
+                                ? Icons.event_note
+                                : Icons.play_circle_outline,
                             color: AppColors.white,
                             size: 38,
                           ),
@@ -98,7 +100,7 @@ class HomePage extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               isAdmin
-                                  ? "Consulter l'historique"
+                                  ? "Programmer une séance"
                                   : "Démarrer l’appel",
                               style: TextStyle(
                                 color: AppColors.white,

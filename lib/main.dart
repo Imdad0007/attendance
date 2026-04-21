@@ -23,7 +23,7 @@ void main() async {
     final response = await Supabase.instance.client
         .from('app_settings')
         .select('cle, valeur');
-    
+
     final Map<String, String> configMap = {};
     for (var item in response) {
       configMap[item['cle']] = item['valeur'];
@@ -60,7 +60,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   Future<void> _initAuth() async {
     // Écouter les changements d'auth globalement
     Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-      if (data.event == AuthChangeEvent.signedIn || data.event == AuthChangeEvent.tokenRefreshed) {
+      if (data.event == AuthChangeEvent.signedIn ||
+          data.event == AuthChangeEvent.tokenRefreshed) {
         final profile = await _authService.getCurrentUserProfile();
         ref.read(userProvider.notifier).state = profile;
       } else if (data.event == AuthChangeEvent.signedOut) {
@@ -74,7 +75,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       final profile = await _authService.getCurrentUserProfile();
       ref.read(userProvider.notifier).state = profile;
     }
-    
+
     if (mounted) {
       setState(() => _isInitializing = false);
     }

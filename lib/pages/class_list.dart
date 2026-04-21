@@ -13,11 +13,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ClassList extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> students;
-  final int idEcue;
-  final int idProf;
-  final int idSalle;
-  final TimeOfDay heureDebut;
-  final TimeOfDay heureFin;
+  final int idSeance;
+  final String heureDebut;
+  final String heureFin;
   final String niveauLabel;
   final String filiereLabel;
   final String ecueLabel;
@@ -25,9 +23,7 @@ class ClassList extends ConsumerStatefulWidget {
   const ClassList({
     super.key,
     required this.students,
-    required this.idEcue,
-    required this.idProf,
-    required this.idSalle,
+    required this.idSeance,
     required this.heureDebut,
     required this.heureFin,
     required this.niveauLabel,
@@ -69,7 +65,9 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   Future<void> _handleSave() async {
     if (_signatureController.isEmpty) {
-      AppNotification.warning("La signature du professeur est requise pour valider");
+      AppNotification.warning(
+        "La signature du professeur est requise pour valider",
+      );
       return;
     }
 
@@ -78,40 +76,17 @@ class _ClassListState extends ConsumerState<ClassList> {
     try {
       final supabase = Supabase.instance.client;
       final user = ref.read(userProvider);
+
       if (user == null) {
         throw Exception("Utilisateur non trouvé");
       }
 
       final signatureBytes = await _signatureController.toPngBytes();
-      if (signatureBytes == null) {
-        throw Exception("Erreur signature");
-      }
-
-      final heureDebutStr =
-          '${widget.heureDebut.hour.toString().padLeft(2, '0')}:${widget.heureDebut.minute.toString().padLeft(2, '0')}';
-      final heureFinStr =
-          '${widget.heureFin.hour.toString().padLeft(2, '0')}:${widget.heureFin.minute.toString().padLeft(2, '0')}';
-      final now = DateTime.now();
-
-      final seanceResponse = await supabase
-          .from('seance')
-          .insert({
-            'id_ecue': widget.idEcue,
-            'id_prof': widget.idProf,
-            'id_salle': widget.idSalle,
-            'heure_debut': heureDebutStr,
-            'heure_fin': heureFinStr,
-            'date_seance': now.toIso8601String().split('T')[0],
-          })
-          .select('id_seance')
-          .single();
-
-      final idSeance = seanceResponse['id_seance'];
 
       final presenceResponse = await supabase
           .from('presence')
           .insert({
-            'id_seance': idSeance,
+            'id_seance': widget.idSeance,
             'id_surveillant': user.idSurveillant,
             'signature_prof': signatureBytes,
           })
@@ -132,40 +107,45 @@ class _ClassListState extends ConsumerState<ClassList> {
 
       await supabase.from('details_presence').insert(detailsData);
 
-      final sessionDate = DateFormat('dd/MM/yyyy').format(now);
+      final sessionDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
+
+      String formatHour(String t) {
+        final p = t.split(':');
+        return '${p[0]}h${p[1]}';
+      }
+
       final courseHour =
-          '${widget.heureDebut.hour.toString().padLeft(2, '0')}h${widget.heureDebut.minute.toString().padLeft(2, '0')}-${widget.heureFin.hour.toString().padLeft(2, '0')}h${widget.heureFin.minute.toString().padLeft(2, '0')}';
+          '${formatHour(widget.heureDebut)}-${formatHour(widget.heureFin)}';
 
-      final notificationTasks = <Future<bool>>[];
-      for (final s in students) {
-        if (s['isAbsent'] && s['parentPhoneNumber'] != 'N/A') {
-          notificationTasks.add(
-            WhatsAppService.sendAbsenceTemplate(
-              phone: s['parentPhoneNumber'],
-              studentName: '${s['nom']} ${s['prenom']}',
-              dateAbsence: sessionDate,
-              courseName: widget.ecueLabel,
-              coursehour: courseHour,
-            ),
-          );
-        }
-      }
+      final absentStudents = students
+          .where((s) => s['isAbsent'] && s['parentPhoneNumber'] != 'N/A')
+          .toList();
 
-      final notificationResults = notificationTasks.isEmpty
-          ? const <bool>[]
-          : await Future.wait(notificationTasks);
-      final failedNotifications =
-          notificationResults.where((sent) => !sent).length;
+      debugPrint(
+        "DEBUG: Nombre d'absents détectés avec numéro : ${absentStudents.length}",
+      );
 
-      if (mounted) {
-        setState(() => _isSaving = false);
-        context.go('/success', extra: failedNotifications);
-      }
+      final tasks = absentStudents.map((s) {
+        // debugPrint("DEBUG: Tentative d'envoi pour ${s['nom']} au ${s['parentPhoneNumber']}");
+        return WhatsAppService.sendAbsenceTemplate(
+          phone: s['parentPhoneNumber'],
+          studentName: '${s['nom']} ${s['prenom']}',
+          dateAbsence: sessionDate,
+          courseName: widget.ecueLabel,
+          coursehour: courseHour,
+        );
+      });
+
+      final results = await Future.wait(tasks);
+      final failed = results.where((e) => e == false).length;
+
+      if (!mounted) return;
+
+      context.go('/success', extra: failed);
     } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        AppNotification.error("Erreur lors de l'enregistrement de la présence", error: e);
-      }
+      AppNotification.error("Erreur lors de l'enregistrement", error: e);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -173,6 +153,19 @@ class _ClassListState extends ConsumerState<ClassList> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
+
+      // appBar: AppBar(
+      //   title: const Text(
+      //     "",
+      //     style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.black),
+      //   ),
+      //   backgroundColor: Colors.transparent,
+      //   elevation: 0,
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
+      //     onPressed: () => Navigator.pop(context),
+      //   ),
+      // ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -189,15 +182,16 @@ class _ClassListState extends ConsumerState<ClassList> {
                             itemCount: students.length + 1,
                             separatorBuilder: (c, i) =>
                                 const Divider(height: 1),
-                            itemBuilder: (c, i) =>
-                                i < students.length ? _studentRow(i) : _registerButton(),
+                            itemBuilder: (c, i) => i < students.length
+                                ? _studentRow(i)
+                                : _registerButton(),
                           ),
                   ),
                 ),
               ],
             ),
-           if (showConfirmDialog) _confirm(),
-           if (showSignatureDialog) _signatureDialog(),
+            if (showConfirmDialog) _confirm(),
+            if (showSignatureDialog) _signatureDialog(),
           ],
         ),
       ),
@@ -226,12 +220,12 @@ class _ClassListState extends ConsumerState<ClassList> {
   }
 
   Widget _headerChip(String text) => Flexible(
-        child: Text(
-          text,
-          style: const TextStyle(color: AppColors.white, fontSize: 16),
-          overflow: TextOverflow.ellipsis,
-        ),
-      );
+    child: Text(
+      text,
+      style: const TextStyle(color: AppColors.white, fontSize: 16),
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
 
   Widget _tableHead() {
     return Container(
@@ -481,7 +475,6 @@ class _ClassListState extends ConsumerState<ClassList> {
     );
   }
 
-
   Widget _signatureDialog() {
     return SizedBox.expand(
       child: BackdropFilter(
@@ -511,10 +504,10 @@ class _ClassListState extends ConsumerState<ClassList> {
                       ),
                       IconButton(
                         onPressed: () {
-                        setState(() {
-                          showSignatureDialog = false;
-                        });
-                      },
+                          setState(() {
+                            showSignatureDialog = false;
+                          });
+                        },
                         icon: const Icon(Icons.close, size: 30),
                       ),
                     ],
@@ -561,9 +554,7 @@ class _ClassListState extends ConsumerState<ClassList> {
                   SizedBox(
                     width: double.infinity,
                     child: Button(
-                      label: _isSaving
-                          ? "Enregistrement..."
-                          : "ENREGISTRER",
+                      label: _isSaving ? "Enregistrement..." : "ENREGISTRER",
                       onPressed: _isSaving ? null : _handleSave,
                     ),
                   ),
@@ -576,8 +567,3 @@ class _ClassListState extends ConsumerState<ClassList> {
     );
   }
 }
-
-
-
-
-  

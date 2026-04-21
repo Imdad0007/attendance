@@ -41,7 +41,7 @@ class _RetirerState extends State<Retirer> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      AppNotification.error("Erreur de chargement", error: e);
+      AppNotification.error("Erreur de chargement");
     }
   }
 
@@ -78,12 +78,12 @@ class _RetirerState extends State<Retirer> {
       if (!mounted) return;
 
       AppNotification.success("Surveillant retiré avec succès !");
-      
+
       _fetchSurveillants();
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      AppNotification.error("Erreur lors du retrait", error: e);
+      AppNotification.error("Erreur lors du retrait");
     }
   }
 
@@ -111,8 +111,11 @@ class _RetirerState extends State<Retirer> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.person_off_outlined,
-                              size: 80, color: AppColors.grey.withOpacity(0.3)),
+                          Icon(
+                            Icons.person_off_outlined,
+                            size: 80,
+                            color: AppColors.grey.withOpacity(0.3),
+                          ),
                           const SizedBox(height: 16),
                           const Text(
                             "Aucun surveillant trouvé",

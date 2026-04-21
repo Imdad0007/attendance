@@ -46,21 +46,15 @@ class AppColors {
   static const orange = Colors.orange;
   static const blue = Color.fromARGB(255, 74, 138, 202);
 
-
-
-
-
-
-
   // Vert (plus foncé)
-// static const green = Color(0xFF2E7D32);   // Green 800
+  // static const green = Color(0xFF2E7D32);   // Green 800
 
-// // Rouge (plus profond)
-// static const red = Color(0xFFC62828);     // Red 800
+  // // Rouge (plus profond)
+  // static const red = Color(0xFFC62828);     // Red 800
 
-// // Orange (moins lumineux)
-// static const orange = Color(0xFFEF6C00);  // Orange 800
+  // // Orange (moins lumineux)
+  // static const orange = Color(0xFFEF6C00);  // Orange 800
 
-// // Bleu (plus contrasté)
-// static const blue = Color(0xFF1565C0);    // Blue 800
+  // // Bleu (plus contrasté)
+  // static const blue = Color(0xFF1565C0);    // Blue 800
 }

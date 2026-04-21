@@ -22,7 +22,7 @@ class Surveillant {
 
   factory Surveillant.fromMap(Map<String, dynamic> map) {
     return Surveillant(
-      idSurveillant: map['id_surveillant'], 
+      idSurveillant: map['id_surveillant'],
       authId: map['auth_id'],
       nom: map['nom'] ?? '',
       prenom: map['prenom'] ?? '',

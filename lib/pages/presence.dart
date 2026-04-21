@@ -1,375 +1,500 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:attendance/composants/dropdown_field.dart';
-import 'package:attendance/pages/class_list.dart';
 import 'package:attendance/composants/colors.dart';
-import 'package:attendance/composants/button.dart';
-import 'package:attendance/composants/notification_ui.dart';
+import 'package:attendance/providers/user_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class Presence extends StatefulWidget {
+class Presence extends ConsumerStatefulWidget {
   const Presence({super.key});
 
   @override
-  State<Presence> createState() => _PresenceState();
+  ConsumerState<Presence> createState() => _Presence();
 }
 
-class _PresenceState extends State<Presence> {
-  int? selectedNiveau;
-  int? selectedFiliere;
-  int? selectedClasse;
-  int? selectedEcue;
-  int? selectedProf;
-  int? selectedSalle;
-  TimeOfDay? heureDebut;
-  TimeOfDay? heureFin;
-
-  List<Map<String, dynamic>> niveaux = [];
-  List<Map<String, dynamic>> filieres = [];
-  List<Map<String, dynamic>> ecue = [];
-  List<Map<String, dynamic>> professeurs = [];
-  List<Map<String, dynamic>> salles = [];
-
-  bool isLoadingNiveaux = true;
-  bool isLoadingFilieres = false;
-  bool isLoadingEcue = false;
-  bool isLoadingProfs = true;
-  bool isLoadingSalles = true;
-  bool isNavigating = false;
-
+class _Presence extends ConsumerState<Presence> {
   final _supabase = Supabase.instance.client;
+
+  List<Map<String, dynamic>> seances = [];
+  Set<int> seancesFaites = {};
+
+  bool isLoading = true;
+  int? _loadingSeanceId;
 
   @override
   void initState() {
     super.initState();
-    _fetchInitialData();
+    _loadData();
   }
 
-  Future<void> _fetchInitialData() async {
-    await Future.wait([_fetchNiveaux(), _fetchProfesseurs(), _fetchSalles()]);
-  }
+  Future<void> _loadData() async {
+    setState(() => isLoading = true);
 
-  Future<void> _fetchNiveaux() async {
     try {
-      final response = await _supabase.from('niveau').select('id_niveau, libelle');
-      setState(() {
-        niveaux = (response as List).map((item) => {'id_niveau': item['id_niveau'], 'libelle': item['libelle']}).toList();
-        isLoadingNiveaux = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingNiveaux = false);
+      await Future.wait([_fetchPresences(), _fetchSeances()]);
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
-  Future<void> _fetchProfesseurs() async {
+  Future<void> _fetchPresences() async {
     try {
-      final response = await _supabase.from('professeur').select('id_prof, nom, prenom').order('nom');
-      setState(() {
-        professeurs = (response as List).map((item) => {'id_prof': item['id_prof'], 'nom': item['nom'], 'prenom': item['prenom']}).toList();
-        isLoadingProfs = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingProfs = false);
-    }
-  }
+      final response = await _supabase.from('presence').select('id_seance');
 
-  Future<void> _fetchSalles() async {
-    try {
-      final response = await _supabase.from('salle').select('id_salle, nom').order('nom');
-      setState(() {
-        salles = (response as List).map((item) => {'id_salle': item['id_salle'], 'nom': item['nom']}).toList();
-        isLoadingSalles = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingSalles = false);
-    }
-  }
-
-  Future<void> _fetchFilieres(int idNiveau) async {
-    try {
-      final response = await _supabase
-          .from('classe')
-          .select('id_filiere, filiere(nom_filiere)')
-          .eq('id_niveau', idNiveau);
-
-      final data = (response as List).map((item) => {
-        'id_filiere': item['id_filiere'],
-        'nom_filiere': item['filiere']['nom_filiere'],
-      }).toList();
+      final data = response as List;
 
       setState(() {
-        filieres = data;
-        isLoadingFilieres = false;
+        seancesFaites = data.map((e) => e['id_seance'] as int).toSet();
       });
     } catch (e) {
-      setState(() => isLoadingFilieres = false);
+      debugPrint("Erreur presence: $e");
     }
   }
 
-  Future<void> _fetchClasse(int idNiveau, int idFiliere) async {
+  Future<void> _fetchSeances() async {
     try {
-      final response = await _supabase
-          .from('classe')
-          .select('id_classe')
-          .eq('id_niveau', idNiveau)
-          .eq('id_filiere', idFiliere)
-          .maybeSingle();
+      final user = ref.read(userProvider);
 
-      if (response != null) {
-        setState(() {
-          selectedClasse = response['id_classe'];
-        });
-      }
-    } catch (e) {
-      debugPrint("Erreur fetchClasse: $e");
-    }
-  }
-
-  Future<void> _fetchEcue(int idClasse) async {
-    try {
-      final ueResponse = await _supabase.from('ue').select('id_ue').eq('id_classe', idClasse);
-      final ueIds = (ueResponse as List).map((e) => e['id_ue'] as int).toList();
-
-      if (ueIds.isEmpty) {
-        setState(() {
-          ecue = [];
-          isLoadingEcue = false;
-        });
-        return;
+      if (user == null || user.idSurveillant == null) {
+        throw Exception("Surveillant non connecté");
       }
 
-      final ecueResponse = await _supabase.from('ecue').select('id_ecue, intitule_ecue').inFilter('id_ue', ueIds);
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      final response = await _supabase
+          .from('seance')
+          .select('''
+        id_seance,
+        date_seance,
+        heure_debut,
+        heure_fin,
+
+        ecue (
+          intitule_ecue,
+          ue (
+            classe (
+              id_classe,
+              filiere (nom_filiere),
+              niveau (libelle)
+            )
+          )
+        ),
+
+        surveillant (nom, prenom),
+        professeur (nom, prenom),
+        salle (nom)
+      ''')
+          .eq('id_surveillant', user.idSurveillant!)
+          .eq('date_seance', today)
+          .order('date_seance', ascending: false)
+          .order('id_seance', ascending: false);
 
       setState(() {
-        ecue = (ecueResponse as List).map((item) => {
-          'id_ecue': item['id_ecue'],
-          'intitule_ecue': item['intitule_ecue'],
-        }).toList();
-        isLoadingEcue = false;
+        seances = List<Map<String, dynamic>>.from(response);
       });
     } catch (e) {
-      setState(() => isLoadingEcue = false);
+      debugPrint("Erreur seance: $e");
     }
   }
 
-  String _formatTime(TimeOfDay? time) {
-    if (time == null) return "00:00";
-    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-  }
+  bool _isDone(int id) => seancesFaites.contains(id);
 
-  bool get _isFormValid =>
-      selectedNiveau != null &&
-      selectedFiliere != null &&
-      selectedEcue != null &&
-      selectedProf != null &&
-      selectedSalle != null &&
-      heureDebut != null &&
-      heureFin != null &&
-      (heureDebut!.hour < heureFin!.hour || (heureDebut!.hour == heureFin!.hour && heureDebut!.minute < heureFin!.minute));
+  String _formatTime(String time) =>
+      time.length >= 5 ? time.substring(0, 5) : time;
 
-  void _resetFields() {
-    setState(() {
-      selectedNiveau = null;
-      selectedFiliere = null;
-      selectedEcue = null;
-      selectedProf = null;
-      selectedSalle = null;
-      heureDebut = null;
-      heureFin = null;
-      filieres = [];
-      ecue = [];
-    });
-  }
-
-  Future<void> _selectTime(BuildContext context, bool isDebut) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isDebut ? const TimeOfDay(hour: 7, minute: 0) : const TimeOfDay(hour: 12, minute: 0),
-      initialEntryMode: TimePickerEntryMode.inputOnly,
-      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child!),
-      helpText: isDebut ? 'HEURE DE DÉBUT' : 'HEURE DE FIN',
-    );
-    if (picked != null) setState(() => isDebut ? heureDebut = picked : heureFin = picked);
+  String _formatDate(String date) {
+    return DateFormat('dd MMM yyyy', 'fr_FR').format(DateTime.parse(date));
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 500),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(child: Text('PRÉSENCE', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.black))),
-                  const SizedBox(height: 40),
-                  if (isLoadingNiveaux) const Center(child: CircularProgressIndicator())
-                  else DropdownField<int>(
-                    label: "NIVEAU",
-                    value: selectedNiveau,
-                    items: niveaux.map((n) => DropdownMenuItem<int>(value: n['id_niveau'], child: Text(n['libelle']))).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        selectedNiveau = val;
-                        selectedFiliere = null; selectedEcue = null; filieres = []; ecue = [];
-                        if (val != null) { isLoadingFilieres = true; _fetchFilieres(val); }
-                      });
-                    },
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 10,
                   ),
-                  const SizedBox(height: 20),
-                  if (isLoadingFilieres) const Center(child: CircularProgressIndicator())
-                  else DropdownField<int>(
-                    label: "FILIÈRE",
-                    value: selectedFiliere,
-                    disabled: selectedNiveau == null,
-                    items: filieres.map((f) => DropdownMenuItem<int>(value: f['id_filiere'], child: Text(f['nom_filiere']))).toList(),
-                    onChanged: (val) async {
-                      if (val == null) return;
-                      setState(() { selectedFiliere = val; selectedEcue = null; ecue = []; isLoadingEcue = true; });
-                      await _fetchClasse(selectedNiveau!, val);
-                      if (selectedClasse != null) await _fetchEcue(selectedClasse!);
-                      if (mounted) setState(() => isLoadingEcue = false);
-                    },
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // HEADER
+                        const Center(
+                          child: Text(
+                            'PRÉSENCE',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.black,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Center(
+                          child: Text(
+                            "Liste des appels de présence assignés aujourd'hui",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        // CONTENT LIST
+                        if (seances.isEmpty)
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 100),
+                                Icon(
+                                  Icons.event_busy_outlined,
+                                  size: 80,
+                                  color: Colors.grey.withOpacity(0.5),
+                                ),
+                                const SizedBox(height: 20),
+                                const Text(
+                                  "Vous n'êtes assigné à aucune classe pour la présence aujourd'hui.",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: seances.length,
+                            itemBuilder: (context, index) {
+                              final s = seances[index];
+                              return _buildCard(s);
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 20),
-                  if (isLoadingEcue) const Center(child: CircularProgressIndicator())
-                  else DropdownField<int>(
-                    label: "ECUE",
-                    value: selectedEcue,
-                    disabled: selectedFiliere == null,
-                    items: ecue.map((c) => DropdownMenuItem<int>(value: c['id_ecue'], child: Text(c['intitule_ecue']))).toList(),
-                    onChanged: (val) => setState(() => selectedEcue = val),
-                  ),
-                  const SizedBox(height: 20),
-                  if (isLoadingProfs) const Center(child: CircularProgressIndicator())
-                  else DropdownField<int>(
-                    label: "PROFESSEUR",
-                    value: selectedProf,
-                    items: professeurs.map((p) => DropdownMenuItem<int>(value: p['id_prof'], child: Text("${p['nom']} ${p['prenom']}"))).toList(),
-                    onChanged: (val) => setState(() => selectedProf = val),
-                  ),
-                  const SizedBox(height: 20),
-                  if (isLoadingSalles) const Center(child: CircularProgressIndicator())
-                  else DropdownField<int>(
-                    label: "SALLE",
-                    value: selectedSalle,
-                    items: salles.map((s) => DropdownMenuItem<int>(value: s['id_salle'], child: Text(s['nom']))).toList(),
-                    onChanged: (val) => setState(() => selectedSalle = val),
-                  ),
-                  if (selectedEcue != null) ...[
-                    const SizedBox(height: 20),
-                    _buildTimeSection(),
-                  ],
-                  const SizedBox(height: 40),
-                  Button(
-                    label: isNavigating ? "Chargement..." : "CONTINUER",
-                    onPressed: (_isFormValid && !isNavigating) ? _onContinuerPressed : null,
-                  ),
-                ],
+                ),
               ),
             ),
+    );
+  }
+
+  Widget _buildCard(Map<String, dynamic> s) {
+    final ecue = s['ecue'] ?? {};
+    final ue = ecue['ue'] ?? {};
+    final classe = ue['classe'] ?? {};
+    final filiere = classe['filiere'] ?? {};
+    final niveau = classe['niveau'] ?? {};
+
+    final surveillant = s['surveillant'] ?? {};
+    final prof = s['professeur'] ?? {};
+    final salle = s['salle'] ?? {};
+
+    final isDone = _isDone(s['id_seance']);
+    final isLoading = _loadingSeanceId == s['id_seance'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 6,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "${surveillant['nom'] ?? ''} ${surveillant['prenom'] ?? ''}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ),
+
+                          _statusChip(isDone),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      _dateChip(_formatDate(s['date_seance'])),
+
+                      const SizedBox(height: 10),
+
+                      _infoRow(
+                        Icons.school_outlined,
+                        "Classe : ${niveau['libelle'] ?? ''} ${filiere['nom_filiere'] ?? ''}",
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _infoRow(
+                        Icons.book_outlined,
+                        "Ecue : ${ecue['intitule_ecue'] ?? ''}",
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      _infoRow(
+                        Icons.person_outline,
+                        "Professeur : ${prof['nom'] ?? ''} ${prof['prenom'] ?? ''}",
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      _infoRow(
+                        Icons.room_outlined,
+                        "Salle : ${salle['nom'] ?? ''}",
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            size: 18,
+                            color: AppColors.grey,
+                          ),
+                          const SizedBox(width: 10),
+
+                          Expanded(
+                            child: Text(
+                              "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ),
+
+                          if (!isDone)
+                            InkWell(
+                              onTap: isLoading ? null : () => _startPresence(s),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isLoading
+                                      ? Colors.blue.withOpacity(0.5)
+                                      : AppColors.blue,
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(20),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isLoading)
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    else
+                                      const Icon(
+                                        Icons.play_circle_outline,
+                                        size: 18,
+                                        color: AppColors.white,
+                                      ),
+                                    const SizedBox(width: 6),
+
+                                    Text(
+                                      isLoading
+                                          ? "Chargement..."
+                                          : "Démarrer l'appel",
+                                      style: const TextStyle(
+                                        color: AppColors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Future<void> _onContinuerPressed() async {
-    setState(() => isNavigating = true);
+  Widget _statusChip(bool isDone) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isDone
+            ? Colors.green.withOpacity(0.1)
+            : Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        isDone ? "EFFECTUÉ" : "EN ATTENTE",
+        style: TextStyle(
+          color: isDone ? Colors.green : Colors.orange,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _dateChip(String date) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        date,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.blue,
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 14, color: AppColors.black),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _startPresence(Map<String, dynamic> s) async {
+    final int idSeance = s['id_seance'];
+
+    setState(() => _loadingSeanceId = idSeance);
+
     try {
+      final classe = s['ecue']['ue']['classe'];
+      final int idClasse = classe['id_classe'];
+
       final response = await _supabase
           .from('etudiant')
           .select('matricule, nom, prenom')
-          .eq('id_classe', selectedClasse!)
-          .order('nom', ascending: true);
+          .eq('id_classe', idClasse)
+          .order('nom', ascending: true)
+          .order('prenom', ascending: true);
 
-      final studentList = (response as List).map((s) => {
-        'nom': s['nom'],
-        'prenom': s['prenom'],
-        'matricule': s['matricule'],
-      }).toList();
+      final students = (response as List)
+          .map(
+            (e) => {
+              'nom': e['nom'],
+              'prenom': e['prenom'],
+              'matricule': e['matricule'],
+            },
+          )
+          .toList();
 
-      final List<String> matricules = studentList.map((s) => s['matricule'] as String).toList();
-      
+      final matricules = students.map((s) => s['matricule'] as String).toList();
+
       final parentResponse = await _supabase
           .from('etudiant_parent')
           .select('matricule, parent(telephone)')
           .inFilter('matricule', matricules);
 
-      final Map<String, String> parentPhones = {};
-      for (final record in parentResponse) {
-        parentPhones[record['matricule']] = record['parent']['telephone'];
+      final Map<String, String> phones = {};
+
+      for (final r in parentResponse) {
+        phones[r['matricule']] = r['parent']['telephone'];
       }
 
-      final studentsWithParent = studentList.map((s) => {
-        ...s,
-        'parentPhoneNumber': parentPhones[s['matricule']] ?? 'N/A',
-      }).toList();
-
-      final niveauLabel = niveaux.firstWhere((n) => n['id_niveau'] == selectedNiveau)['libelle'];
-      final filiereLabel = filieres.firstWhere((f) => f['id_filiere'] == selectedFiliere)['nom_filiere'];
-      final ecueLabel = ecue.firstWhere((c) => c['id_ecue'] == selectedEcue)['intitule_ecue'];
+      final studentsWithParents = students
+          .map(
+            (s) => {...s, 'parentPhoneNumber': phones[s['matricule']] ?? 'N/A'},
+          )
+          .toList();
 
       if (!mounted) return;
-      context.push('/class-list', extra: {
-        'students': studentsWithParent,
-        'idEcue': selectedEcue!,
-        'idProf': selectedProf!,
-        'idSalle': selectedSalle!,
-        'heureDebut': heureDebut!,
-        'heureFin': heureFin!,
-        'niveauLabel': niveauLabel,
-        'filiereLabel': filiereLabel,
-        'ecueLabel': ecueLabel,
-      });
-      _resetFields();
+
+      context.go(
+        '/class_list',
+        extra: {
+          'students': studentsWithParents,
+          'id_seance': s['id_seance'],
+          'heureDebut': s['heure_debut'],
+          'heureFin': s['heure_fin'],
+          'niveauLabel': classe['niveau']['libelle'],
+          'filiereLabel': classe['filiere']['nom_filiere'],
+          'ecueLabel': s['ecue']['intitule_ecue'],
+        },
+      );
     } catch (e) {
-      if (mounted) AppNotification.error("Impossible de charger la liste des étudiants", error: e);
+      debugPrint("Erreur start presence: $e");
     } finally {
-      if (mounted) setState(() => isNavigating = false);
+      if (mounted) {
+        setState(() => _loadingSeanceId = null);
+      }
     }
-  }
-
-  Widget _buildTimeSection() {
-    return Container(
-      decoration: const BoxDecoration(border: Border(left: BorderSide(color: AppColors.grey, width: 3))),
-      padding: const EdgeInsets.only(left: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _timePickerItem('Heure Début', heureDebut, true),
-          const SizedBox(height: 15),
-          _timePickerItem('Heure Fin', heureFin, false),
-        ],
-      ),
-    );
-  }
-
-  Widget _timePickerItem(String label, TimeOfDay? time, bool isDebut) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.grey)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _selectTime(context, isDebut),
-          borderRadius: BorderRadius.circular(35),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-            decoration: BoxDecoration(color: AppColors.clearGrey, borderRadius: BorderRadius.circular(35)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(time != null ? _formatTime(time) : "Heure", style: const TextStyle(fontSize: 16, color: AppColors.black)),
-                const Icon(Icons.access_time, color: AppColors.grey),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

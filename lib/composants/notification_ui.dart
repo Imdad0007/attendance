@@ -6,20 +6,23 @@ enum NotificationType { success, error, info, warning }
 
 class AppNotification {
   // Clé globale pour afficher des notifications n'importe où sans context
-  static final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
+  static final GlobalKey<ScaffoldMessengerState> messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   static void show({
     required String message,
     NotificationType type = NotificationType.info,
     String? debugMessage,
   }) {
-    final String finalMessage = kReleaseMode 
-        ? message 
-        : (debugMessage != null ? "$message\n\n[DEBUG]: $debugMessage" : message);
+    final String finalMessage = kReleaseMode
+        ? message
+        : (debugMessage != null
+              ? "$message\n\n[DEBUG]: $debugMessage"
+              : message);
 
     final state = messengerKey.currentState;
     if (state == null) return;
-    
+
     state.removeCurrentSnackBar();
 
     state.showSnackBar(
@@ -28,24 +31,24 @@ class AppNotification {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.transparent,
         duration: const Duration(seconds: 3),
-        content: _NotificationCard(
-          message: finalMessage,
-          type: type,
-        ),
+        content: _NotificationCard(message: finalMessage, type: type),
       ),
     );
   }
 
-  static void success(String message) => 
+  static void success(String message) =>
       show(message: message, type: NotificationType.success);
-      
-  static void error(String message, {dynamic error}) => 
-      show(message: message, type: NotificationType.error, debugMessage: error?.toString());
-      
-  static void info(String message) => 
+
+  static void error(String message, {dynamic error}) => show(
+    message: message,
+    type: NotificationType.error,
+    debugMessage: error?.toString(),
+  );
+
+  static void info(String message) =>
       show(message: message, type: NotificationType.info);
 
-  static void warning(String message) => 
+  static void warning(String message) =>
       show(message: message, type: NotificationType.warning);
 }
 
@@ -70,12 +73,16 @@ class _NotificationCard extends StatelessWidget {
       case NotificationType.error:
         icon = Icons.error_rounded;
         baseColor = AppColors.red;
-        gradient = LinearGradient(colors: [AppColors.red, AppColors.red.withOpacity(0.8)]);
+        gradient = LinearGradient(
+          colors: [AppColors.red, AppColors.red.withOpacity(0.8)],
+        );
         break;
       case NotificationType.warning:
         icon = Icons.warning_rounded;
         baseColor = Colors.orange.shade700;
-        gradient = const LinearGradient(colors: [Colors.orange, Colors.deepOrange]);
+        gradient = const LinearGradient(
+          colors: [Colors.orange, Colors.deepOrange],
+        );
         break;
       case NotificationType.info:
         icon = Icons.info_rounded;
@@ -116,7 +123,11 @@ class _NotificationCard extends StatelessWidget {
               children: [
                 Text(
                   _getTitle(),
-                  style: TextStyle(fontWeight: FontWeight.bold, color: baseColor, fontSize: 14),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: baseColor,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -133,10 +144,14 @@ class _NotificationCard extends StatelessWidget {
 
   String _getTitle() {
     switch (type) {
-      case NotificationType.success: return "Succès";
-      case NotificationType.error: return "Erreur";
-      case NotificationType.warning: return "Attention";
-      case NotificationType.info: return "Information";
+      case NotificationType.success:
+        return "Succès";
+      case NotificationType.error:
+        return "Erreur";
+      case NotificationType.warning:
+        return "Attention";
+      case NotificationType.info:
+        return "Information";
     }
   }
 }

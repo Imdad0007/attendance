@@ -28,8 +28,8 @@ class _ProfilState extends ConsumerState<Profil> {
     );
 
     if (!success) {
-       if (mounted) AppNotification.error("Erreur lors de la mise à jour");
-       return;
+      if (mounted) AppNotification.error("Erreur lors de la mise à jour");
+      return;
     }
 
     ref.read(userProvider.notifier).state = user.copyWith(
@@ -198,7 +198,10 @@ class _ProfilState extends ConsumerState<Profil> {
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error("Erreur lors de la mise à jour du mot de passe", error: e);
+        AppNotification.error(
+          "Erreur lors de la mise à jour du mot de passe",
+          error: e,
+        );
       }
     }
   }
@@ -241,7 +244,9 @@ class _ProfilState extends ConsumerState<Profil> {
                 _updatePassword(nPass.text);
                 Navigator.pop(ctx);
               } else if (nPass.text != cPass.text) {
-                AppNotification.warning("Les mots de passe ne correspondent pas");
+                AppNotification.warning(
+                  "Les mots de passe ne correspondent pas",
+                );
               }
             },
             child: const Text("Enregistrer"),
@@ -252,28 +257,28 @@ class _ProfilState extends ConsumerState<Profil> {
   }
 
   Widget _buildTile(IconData i, String t, VoidCallback o) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE0E0E0),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: ListTile(
-          leading: Icon(i, color: const Color(0xFF003366)),
-          title: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: o,
-        ),
-      );
+    margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE0E0E0),
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: ListTile(
+      leading: Icon(i, color: const Color(0xFF003366)),
+      title: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: o,
+    ),
+  );
 
   Widget _logoutButton() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Button(
-          label: "DÉCONNEXION",
-          onPressed: () async {
-            await _authService.signOut();
-            ref.read(userProvider.notifier).state = null;
-            AppNotification.success("Vous avez été déconnecté avec succès");
-          },
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 25),
+    child: Button(
+      label: "DÉCONNEXION",
+      onPressed: () async {
+        AppNotification.success("Vous avez été déconnecté avec succès");
+        await _authService.signOut();
+        ref.read(userProvider.notifier).state = null;
+      },
+    ),
+  );
 }

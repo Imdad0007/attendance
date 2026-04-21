@@ -75,8 +75,9 @@ class _ListerState extends State<Lister> {
               child: loading
                   ? const Center(
                       child: CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
                       ),
                     )
                   : RefreshIndicator(
@@ -133,9 +134,8 @@ class _ListerState extends State<Lister> {
                                       vertical: 8,
                                     ),
                                     leading: CircleAvatar(
-                                      backgroundColor: AppColors.blue.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      backgroundColor: AppColors.blue
+                                          .withValues(alpha: 0.1),
                                       child: const Icon(
                                         Icons.person,
                                         color: AppColors.blue,
@@ -162,7 +162,9 @@ class _ListerState extends State<Lister> {
                                               ),
                                             ),
                                             TextSpan(
-                                              text: _formatPhone(s['telephone']),
+                                              text: _formatPhone(
+                                                s['telephone'],
+                                              ),
                                               style: const TextStyle(
                                                 color: AppColors.blue,
                                                 fontWeight: FontWeight.w500,

@@ -23,10 +23,26 @@ class _CreerState extends State<Creer> {
 
   bool _loading = false;
 
+  void _clearFields() {
+    _formKey.currentState?.reset();
+
+    _emailController.clear();
+    _nomController.clear();
+    _prenomController.clear();
+    _telephoneController.text = '22901';
+    _mdpController.clear();
+
+    setState(() {
+      _selectedRole = 'surveillant';
+    });
+  }
+
   Future<void> _creerSurveillant() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
+
+    final supabase = Supabase.instance.client;
 
     try {
       final email = _emailController.text.trim();
@@ -35,37 +51,47 @@ class _CreerState extends State<Creer> {
       final prenom = _prenomController.text.trim();
       final telephone = _telephoneController.text.trim();
 
-      // Créer le compte dans Supabase Auth avec le ROLE dans les meta-données
-      final authResponse = await Supabase.instance.client.auth.signUp(
+      /// 1️⃣ Sauvegarder la session ADMIN
+      final currentSession = supabase.auth.currentSession;
+
+      if (currentSession == null) {
+        throw Exception("Session admin introuvable");
+      }
+
+      final adminAccessToken = currentSession.accessToken;
+      final adminRefreshToken = currentSession.refreshToken;
+
+      ///  Création du nouvel utilisateur
+
+      final authResponse = await supabase.auth.signUp(
         email: email,
         password: password,
         data: {
           'nom': nom,
           'prenom': prenom,
           'telephone': telephone,
-          'role': _selectedRole, // 'admin' ou 'surveillant'
+          'role': _selectedRole,
         },
       );
 
       if (authResponse.user == null) {
-        throw Exception("Erreur lors de la création du compte auth");
+        throw Exception("Création utilisateur échouée");
       }
+
+      ///  RESTAURER SESSION ADMIN
+      await supabase.auth.setSession(adminRefreshToken!);
+
+      /// 4️Feedback UI
 
       if (mounted) {
         AppNotification.success("Compte $_selectedRole créé avec succès !");
-        Navigator.pop(context);
+        _clearFields();
       }
     } catch (e) {
       String errorMsg = "Impossible de créer l'utilisateur";
-      
+
       if (e is AuthException) {
-        if (e.message.contains("Database error saving new user")) {
-          errorMsg = "Cet email ou ce numéro de téléphone est déjà utilisé par un autre compte.";
-        } else {
-          errorMsg = e.message;
-        }
-      } else if (e.toString().contains("duplicate key")) {
-        errorMsg = "Cet email ou ce numéro de téléphone est déjà utilisé.";
+        errorMsg = e.message;
       }
 
       if (mounted) {
@@ -85,9 +111,10 @@ class _CreerState extends State<Creer> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
-        title: const Text("Créer un compte",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
+        title: const Text(
+          "Créer un compte",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFF2E7D32),
       ),
       body: SingleChildScrollView(
@@ -105,9 +132,9 @@ class _CreerState extends State<Creer> {
                   prefixIcon: Icon(Icons.email_outlined),
                 ),
                 validator: (value) {
-                   if (value == null || value.isEmpty) return "Email requis";
-                   if (!value.contains('@')) return "Email invalide";
-                   return null;
+                  if (value == null || value.isEmpty) return "Email requis";
+                  if (!value.contains('@')) return "Email invalide";
+                  return null;
                 },
               ),
               const SizedBox(height: 16),
@@ -158,7 +185,7 @@ class _CreerState extends State<Creer> {
                     : null,
               ),
               const SizedBox(height: 16),
-              
+
               // --- SÉLECTEUR DE RÔLE ---
               DropdownButtonFormField<String>(
                 value: _selectedRole,
@@ -167,14 +194,20 @@ class _CreerState extends State<Creer> {
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'surveillant', child: Text("Surveillant")),
-                  DropdownMenuItem(value: 'admin', child: Text("Administrateur")),
+                  DropdownMenuItem(
+                    value: 'surveillant',
+                    child: Text("Surveillant"),
+                  ),
+                  DropdownMenuItem(
+                    value: 'admin',
+                    child: Text("Administrateur"),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedRole = val);
                 },
               ),
-              
+
               const SizedBox(height: 24),
 
               Button2(

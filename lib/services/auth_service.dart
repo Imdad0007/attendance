@@ -2,13 +2,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/models/surveillant_model.dart';
 import 'package:flutter/foundation.dart';
 
-enum AuthStatus { 
-  onlineSuccess, 
-  invalidCredentials, 
-  noInternet, 
-  unknownError, 
+enum AuthStatus {
+  onlineSuccess,
+  invalidCredentials,
+  noInternet,
+  unknownError,
   emailNotConfirmed,
-  accountDeactivated 
+  accountDeactivated,
 }
 
 class AuthResult {
@@ -43,7 +43,7 @@ class AuthService {
       if (rawProfile == null) {
         return AuthResult(
           status: AuthStatus.unknownError,
-          message: "Profil utilisateur non trouvé."
+          message: "Profil utilisateur non trouvé.",
         );
       }
 
@@ -52,15 +52,14 @@ class AuthService {
         await signOut(); // Déconnexion immédiate
         return AuthResult(
           status: AuthStatus.accountDeactivated,
-          message: "Ce compte a été retiré du système."
+          message: "Ce compte a été retiré du système.",
         );
       }
 
       return AuthResult(
-        status: AuthStatus.onlineSuccess, 
-        user: Surveillant.fromMap(rawProfile)
+        status: AuthStatus.onlineSuccess,
+        user: Surveillant.fromMap(rawProfile),
       );
-
     } on AuthException catch (e) {
       debugPrint("Erreur Auth: ${e.message}");
       if (e.message.contains("Invalid login credentials")) {
@@ -94,15 +93,15 @@ class AuthService {
   Future<Surveillant?> getCurrentUserProfile() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return null;
-    
+
     // On vérifie aussi le delete_at ici pour l'auto-login
     final profile = await _supabase
-          .from('surveillant')
-          .select()
-          .eq('auth_id', user.id)
-          .filter('delete_at', 'is', null)
-          .maybeSingle();
-          
+        .from('surveillant')
+        .select()
+        .eq('auth_id', user.id)
+        .filter('delete_at', 'is', null)
+        .maybeSingle();
+
     return profile != null ? Surveillant.fromMap(profile) : null;
   }
 
@@ -117,7 +116,7 @@ class AuthService {
       await _supabase
           .from('surveillant')
           .update(data)
-          .eq('id_surveillant', userId); 
+          .eq('id_surveillant', userId);
       return true;
     } catch (e) {
       debugPrint("Erreur Update: $e");
