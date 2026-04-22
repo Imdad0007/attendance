@@ -1059,8 +1059,15 @@ class _DashboardState extends ConsumerState<Dashboard> {
                 scrollDirection: Axis.horizontal,
                 child: Container(
                   // Largeur dynamique : 100px par classe, minimum 600px
-                  width: (_absencesParClasse.length * 100.0).clamp(600.0, double.infinity),
-                  padding: const EdgeInsets.only(right: 20, left: 10, bottom: 10),
+                  width: (_absencesParClasse.length * 100.0).clamp(
+                    600.0,
+                    double.infinity,
+                  ),
+                  padding: const EdgeInsets.only(
+                    right: 20,
+                    left: 10,
+                    bottom: 10,
+                  ),
                   child: BarChart(
                     BarChartData(
                       maxY: _maxAbsences,
@@ -1089,7 +1096,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
                             reservedSize: 60,
                             getTitlesWidget: (value, meta) {
                               int index = value.toInt();
-                              if (index < 0 || index >= _absencesParClasse.length) {
+                              if (index < 0 ||
+                                  index >= _absencesParClasse.length) {
                                 return const SizedBox();
                               }
                               return Padding(
@@ -1143,8 +1151,11 @@ class _DashboardState extends ConsumerState<Dashboard> {
                         ),
                       ),
                       borderData: FlBorderData(show: false),
-                      barGroups: _absencesParClasse.asMap().entries.map((entry) {
-                        final double val = (entry.value['value'] as int).toDouble();
+                      barGroups: _absencesParClasse.asMap().entries.map((
+                        entry,
+                      ) {
+                        final double val = (entry.value['value'] as int)
+                            .toDouble();
                         return BarChartGroupData(
                           x: entry.key,
                           showingTooltipIndicators: [0],

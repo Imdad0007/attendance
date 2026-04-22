@@ -292,14 +292,13 @@ class _Presence extends ConsumerState<Presence> {
                         Icons.room_outlined,
                         "Salle : ${salle['nom'] ?? ''}",
                       ),
-                      
+
                       const SizedBox(height: 10),
 
                       _infoRow(
                         Icons.access_time,
                         "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
                       ),
-
 
                       const SizedBox(height: 12),
 

@@ -17,7 +17,7 @@ class SuccessRegistration extends ConsumerWidget {
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
-         backgroundColor: const Color(0xFFF0F2F5),
+        backgroundColor: const Color(0xFFF0F2F5),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
           onPressed: () {

@@ -277,21 +277,18 @@ class _HistoriqueState extends ConsumerState<Historique> {
   }
 
   void _showEcues() async {
- 
+    final notifier = ref.read(historiqueProvider.notifier);
 
-         final notifier = ref.read(historiqueProvider.notifier);
-     
-        // Si une classe est sélectionnée, on ne récupère que les ECUEs de cette classe
-        PostgrestFilterBuilder query = Supabase.instance.client
-              .from('ecue')
-      
-             .select('id_ecue, intitule_ecue, ue!inner(id_classe)');
-     
-         if (notifier.selectedClasseId != null) {
-          query = query.eq('ue.id_classe', notifier.selectedClasseId!);
-         }
-      
-         final data = await query.order('intitule_ecue');
+    // Si une classe est sélectionnée, on ne récupère que les ECUEs de cette classe
+    PostgrestFilterBuilder query = Supabase.instance.client
+        .from('ecue')
+        .select('id_ecue, intitule_ecue, ue!inner(id_classe)');
+
+    if (notifier.selectedClasseId != null) {
+      query = query.eq('ue.id_classe', notifier.selectedClasseId!);
+    }
+
+    final data = await query.order('intitule_ecue');
 
     if (!mounted) return;
 
@@ -326,37 +323,42 @@ class _HistoriqueState extends ConsumerState<Historique> {
         .from('classe')
         .select('id_classe, filiere(nom_filiere), niveau(libelle)')
         .order('niveau(libelle)')
-    .order('filiere(nom_filiere)');
-
+        .order('filiere(nom_filiere)');
 
     int getNiveauOrder(String libelle) {
-  switch (libelle) {
-    case 'Licence 1': return 1;
-    case 'Licence 2': return 2;
-    case 'Licence 3': return 3;
-    case 'Master 1': return 4;
-    case 'Master 2': return 5;
-    default: return 999;
-  }
-}
+      switch (libelle) {
+        case 'Licence 1':
+          return 1;
+        case 'Licence 2':
+          return 2;
+        case 'Licence 3':
+          return 3;
+        case 'M1':
+          return 4;
+        case 'M2':
+          return 5;
+        default:
+          return 999;
+      }
+    }
 
-data.sort((a, b) {
-  final niveauA = a['niveau']['libelle'];
-  final niveauB = b['niveau']['libelle'];
+    data.sort((a, b) {
+      final niveauA = a['niveau']['libelle'];
+      final niveauB = b['niveau']['libelle'];
 
-  final ordreA = getNiveauOrder(niveauA);
-  final ordreB = getNiveauOrder(niveauB);
+      final ordreA = getNiveauOrder(niveauA);
+      final ordreB = getNiveauOrder(niveauB);
 
-  if (ordreA != ordreB) {
-    return ordreA.compareTo(ordreB);
-  }
+      if (ordreA != ordreB) {
+        return ordreA.compareTo(ordreB);
+      }
 
-  // si même niveau → tri filière
-  final filiereA = a['filiere']['nom_filiere'];
-  final filiereB = b['filiere']['nom_filiere'];
+      // si même niveau → tri filière
+      final filiereA = a['filiere']['nom_filiere'];
+      final filiereB = b['filiere']['nom_filiere'];
 
-  return filiereA.compareTo(filiereB);
-});
+      return filiereA.compareTo(filiereB);
+    });
 
     showModalBottomSheet(
       context: context,
