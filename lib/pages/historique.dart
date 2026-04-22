@@ -215,7 +215,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Tous les Surveilants"),
+            title: const Text("Tous les Surveillants"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setSurveillant(null);
               Navigator.pop(sheetContext);
@@ -298,7 +298,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Tout les Ecuse"),
+            title: const Text("Tout les Ecues"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setEcue(null);
               Navigator.pop(sheetContext);
