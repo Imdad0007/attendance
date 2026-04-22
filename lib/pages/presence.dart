@@ -292,27 +292,23 @@ class _Presence extends ConsumerState<Presence> {
                         "Salle : ${salle['nom'] ?? ''}",
                       ),
 
+                      _infoRow(
+                        Icons.access_time,
+                        "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
+                      ),
+
                       const SizedBox(height: 10),
 
+                      _infoRow(
+                        Icons.access_time,
+                        "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
+                      ),
+
+                      const SizedBox(height: 12),
+
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          const Icon(
-                            Icons.access_time,
-                            size: 18,
-                            color: AppColors.grey,
-                          ),
-                          const SizedBox(width: 10),
-
-                          Expanded(
-                            child: Text(
-                              "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ),
-
                           if (!isDone)
                             InkWell(
                               onTap: isLoading ? null : () => _startPresence(s),

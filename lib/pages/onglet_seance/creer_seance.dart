@@ -358,8 +358,9 @@ class _CreerSeanceState extends State<CreerSeance> {
       ),
       helpText: isDebut ? 'HEURE DE DÉBUT' : 'HEURE DE FIN',
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() => isDebut ? heureDebut = picked : heureFin = picked);
+    }
   }
 
   @override

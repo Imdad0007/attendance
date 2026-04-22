@@ -30,7 +30,10 @@ class AuthService {
       );
 
       if (response.user == null) {
-        return AuthResult(status: AuthStatus.invalidCredentials);
+        return AuthResult(
+          status: AuthStatus.invalidCredentials,
+          message: "Email ou mot de passe incorrect.",
+        );
       }
 
       // 1. Récupérer le profil brut pour vérifier l'état du compte
@@ -62,19 +65,48 @@ class AuthService {
       );
     } on AuthException catch (e) {
       debugPrint("Erreur Auth: ${e.message}");
-      if (e.message.contains("Invalid login credentials")) {
-        return AuthResult(status: AuthStatus.invalidCredentials);
+      // Mapping des erreurs techniques vers des messages utilisateurs
+      if (e.message.contains("Invalid login credentials") ||
+          e.message.contains("invalid_credentials")) {
+        return AuthResult(
+          status: AuthStatus.invalidCredentials,
+          message: "Email ou mot de passe incorrect.",
+        );
       }
       if (e.message.contains("Email not confirmed")) {
-        return AuthResult(status: AuthStatus.emailNotConfirmed);
+        return AuthResult(
+          status: AuthStatus.emailNotConfirmed,
+          message:
+              "Veuillez confirmer votre adresse email avant de vous connecter.",
+        );
       }
-      return AuthResult(status: AuthStatus.unknownError, message: e.message);
+      if (e.message.contains("too many requests")) {
+        return AuthResult(
+          status: AuthStatus.unknownError,
+          message: "Trop de tentatives. Veuillez réessayer plus tard.",
+        );
+      }
+      return AuthResult(
+        status: AuthStatus.unknownError,
+        message: "Une erreur est survenue lors de l'authentification.",
+      );
     } catch (e) {
       debugPrint("Erreur Inattendue: $e");
-      if (e.toString().contains("SocketException")) {
-        return AuthResult(status: AuthStatus.noInternet);
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains("socketexception") ||
+          errorStr.contains("network_error") ||
+          errorStr.contains("connection failed") ||
+          errorStr.contains("handshake")) {
+        return AuthResult(
+          status: AuthStatus.noInternet,
+          message:
+              "Problème de connexion. Veuillez vérifier votre accès internet.",
+        );
       }
-      return AuthResult(status: AuthStatus.unknownError);
+      return AuthResult(
+        status: AuthStatus.unknownError,
+        message: "Impossible de contacter le serveur. Veuillez réessayer.",
+      );
     }
   }
 

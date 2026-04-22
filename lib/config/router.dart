@@ -28,7 +28,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final user = ref.read(userProvider);
       final loggingIn = state.matchedLocation == '/login';
-      final session = Supabase.instance.client.auth.currentSession;
+
+      Session? session;
+      try {
+        session = Supabase.instance.client.auth.currentSession;
+      } catch (e) {
+        debugPrint("Erreur accès session: $e");
+      }
 
       if (session == null && !loggingIn) return '/login';
       if (session != null && user != null && loggingIn) return '/';

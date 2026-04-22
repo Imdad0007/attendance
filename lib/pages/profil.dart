@@ -1,4 +1,6 @@
 import 'package:attendance/composants/button.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:attendance/pages/historique.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/composants/notification_ui.dart';
@@ -94,13 +96,19 @@ class _ProfilState extends ConsumerState<Profil> {
                   ),
                   Text(
                     user?.role == 'admin' ? "Admin" : "Surveillant",
-                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                    style: TextStyle(
+                      color: Color(0xFF003366),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  const SizedBox(height: 5),
+
                   const Text(
                     "PIGIER-BENIN",
                     style: TextStyle(
-                      color: Color(0xFF003366),
-                      fontWeight: FontWeight.bold,
+                      color: Color.fromARGB(255, 97, 97, 97),
+                      fontSize: 16,
                     ),
                   ),
                   const SizedBox(height: 25),
@@ -142,13 +150,13 @@ class _ProfilState extends ConsumerState<Profil> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
             _buildTile(
               Icons.lock_outline,
               "Modifier votre mot de passe",
               _editPasswordDialog,
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 60),
             _logoutButton(),
           ],
         ),
@@ -275,9 +283,16 @@ class _ProfilState extends ConsumerState<Profil> {
     child: Button(
       label: "DÉCONNEXION",
       onPressed: () async {
+        // Afficher le message en premier
         AppNotification.success("Vous avez été déconnecté avec succès");
+
+        // Déconnexion de Supabase
         await _authService.signOut();
-        ref.read(userProvider.notifier).state = null;
+
+        // Réinitialisation des providers (provoque la redirection)
+        ref.invalidate(userProvider);
+        ref.invalidate(navigationTabProvider);
+        ref.invalidate(historiqueProvider);
       },
     ),
   );

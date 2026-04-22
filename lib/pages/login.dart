@@ -66,29 +66,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (authResult.status == AuthStatus.onlineSuccess &&
           authResult.user != null) {
-        // 1. Mise à jour du profil (déclenche isAdminProvider et isSurveillantProvider)
+        // ... (le code de succès reste identique)
         ref.read(userProvider.notifier).state = authResult.user;
-
-        // 2. CHOIX DE L'ONGLET DE DÉMARRAGE (Anti-flash)
-        // On définit l'onglet AVANT la navigation pour que MainNavigationBar lise le bon état dès le 1er frame
         final String role = authResult.user!.role.toLowerCase();
-
         if (role == 'admin') {
           ref.read(navigationTabProvider.notifier).state = AppTab.dashboard;
         } else {
           ref.read(navigationTabProvider.notifier).state = AppTab.home;
         }
-
-        // 3. Navigation vers l'interface principale
-        // Utilisez context.go('/') ou votre route principale
         context.go('/');
       } else {
-        // Gestion des messages d'erreurs
-        String message = authResult.message ?? "Erreur de connexion.";
-        if (authResult.status == AuthStatus.invalidCredentials) {
-          message = "Email ou mot de passe incorrect.";
+        // Gestion précise des messages d'erreurs
+        switch (authResult.status) {
+          case AuthStatus.invalidCredentials:
+            AppNotification.error("Email ou mot de passe incorrect.");
+            break;
+          case AuthStatus.noInternet:
+            AppNotification.error(
+              authResult.message ?? "Pas de connexion internet.",
+            );
+            break;
+          case AuthStatus.accountDeactivated:
+            AppNotification.warning(
+              authResult.message ?? "Votre compte a été désactivé.",
+            );
+            break;
+          case AuthStatus.emailNotConfirmed:
+            AppNotification.warning("Veuillez confirmer votre adresse email.");
+            break;
+          default:
+            AppNotification.error(
+              authResult.message ?? "Erreur de connexion inconnue.",
+            );
         }
-        AppNotification.error(message);
       }
     } catch (e) {
       AppNotification.error("Une erreur technique est survenue.");

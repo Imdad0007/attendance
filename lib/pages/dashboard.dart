@@ -31,11 +31,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
   int _surveillantsActifs = 0;
 
   // Listes Dynamiques
-  List<Map<String, dynamic>> _liveFeed = [];
   List<Map<String, dynamic>> _alerts = [];
   List<Map<String, dynamic>> _performanceSurveillants = [];
   List<Map<String, dynamic>> _absencesParClasse = [];
-  List<Map<String, dynamic>> _auditLog = [];
 
   // Métadonnées pour les rapports
   List<Map<String, dynamic>> _allLevels = [];
@@ -77,7 +75,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
     await Future.wait([
       _fetchKPIs(),
       _fetchPerformance(),
-      _fetchLiveFeed(),
       _fetchAcademicStats(),
       _fetchMetadata(),
     ]);
@@ -132,11 +129,12 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
       _seancesRestantes = _totalSeances - _seancesFaites;
 
-      // Total absences
+      // Total absences du jour
       final absencesResponse = await _supabase
           .from('details_presence')
-          .select('matricule, presence(date_seance)')
-          .eq('date_seance', today);
+          .select('matricule, presence!inner(seance!inner(date_seance))')
+          .eq('statut', 'absent')
+          .eq('presence.seance.date_seance', today);
       _totalAbsences = (absencesResponse as List).length;
 
       _alerts = [];
@@ -152,27 +150,47 @@ class _DashboardState extends ConsumerState<Dashboard> {
   }
 
   Future<void> _fetchPerformance() async {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     try {
       final response = await _supabase
           .from('surveillant')
           .select('id_surveillant, nom, prenom')
-          .eq('role', 'surveillant')
-          .filter('delete_at', 'is', null);
+          .filter('delete_at', 'is', null)
+          .eq('role', 'surveillant');
       final List<Map<String, dynamic>> perfList = [];
 
       for (var s in (response as List)) {
-        final done = await _supabase
-            .from('presence')
-            .select('id_presence')
-            .eq('id_surveillant', s['id_surveillant']);
+        final idSurv = s['id_surveillant'];
 
-        final countValue = (done as List).length;
+        // 1. Séances assignées au surveillant pour aujourd'hui
+        final assignedResponse = await _supabase
+            .from('seance')
+            .select('id_seance')
+            .eq('id_surveillant', idSurv)
+            .eq('date_seance', today);
+        final assignedCount = (assignedResponse as List).length;
+
+        // 2. Séances validées (présences marquées) pour ces séances précisément
+        int doneCount = 0;
+        if (assignedCount > 0) {
+          final assignedIds = (assignedResponse as List)
+              .map((e) => e['id_seance'])
+              .toList();
+          final doneResponse = await _supabase
+              .from('presence')
+              .select('id_presence')
+              .eq('id_surveillant', idSurv)
+              .inFilter('id_seance', assignedIds);
+          doneCount = (doneResponse as List).length;
+        }
 
         perfList.add({
           'name': "${s['nom']} ${s['prenom']}",
-          'count': countValue,
-          'rate': (countValue > 0)
-              ? (countValue / (countValue + 5) * 100).toInt()
+          'done': doneCount,
+          'assigned': assignedCount,
+          'rate': (assignedCount > 0)
+              ? ((doneCount / assignedCount) * 100).toInt()
               : 0,
         });
       }
@@ -182,56 +200,59 @@ class _DashboardState extends ConsumerState<Dashboard> {
     }
   }
 
-  Future<void> _fetchLiveFeed() async {
-    try {
-      final response = await _supabase
-          .from('presence')
-          .select('''
-        date_presence,
-        surveillant(nom, prenom),
-        seance(ecue(intitule_ecue))
-      ''')
-          .order('date_presence', ascending: false)
-          .limit(8);
-
-      _liveFeed = List<Map<String, dynamic>>.from(response);
-      _auditLog = _liveFeed;
-    } catch (e) {
-      debugPrint("Error Live Feed: $e");
-    }
-  }
-
   double _maxAbsences = 20; // Valeur par défaut pour l'échelle
 
   Future<void> _fetchAcademicStats() async {
     try {
-      // Exemple de requête réelle : On compte les absences par libellé de niveau
       final response = await _supabase
           .from('details_presence')
-          .select('etudiant(classe(niveau(libelle)))')
+          .select('etudiant(classe(filiere(nom_filiere), niveau(libelle)))')
           .eq('statut', 'absent');
 
       final List data = response as List;
       final Map<String, int> counts = {};
 
       for (var item in data) {
-        final String label =
-            item['etudiant']['classe']['niveau']['libelle'] ?? 'Inconnu';
-        counts[label] = (counts[label] ?? 0) + 1;
+        try {
+          final classe = item['etudiant']['classe'];
+          final filiere = classe['filiere']['nom_filiere'] ?? 'Inconnue';
+          final niveau = classe['niveau']['libelle'] ?? '';
+          final String label = "$filiere - $niveau";
+          counts[label] = (counts[label] ?? 0) + 1;
+        } catch (e) {
+          continue;
+        }
       }
+
+      final List<Color> barColors = [
+        Colors.blue,
+        Colors.green,
+        Colors.orange,
+        Colors.purple,
+        Colors.red,
+        Colors.teal,
+        Colors.indigo,
+        Colors.amber,
+      ];
 
       if (mounted) {
         setState(() {
-          _absencesParClasse = counts.entries
-              .map((e) => {'label': e.key, 'value': e.value})
-              .toList();
+          _absencesParClasse = counts.entries.indexed.map((entry) {
+            int idx = entry.$1;
+            var e = entry.$2;
+            return {
+              'label': e.key,
+              'value': e.value,
+              'color': barColors[idx % barColors.length],
+            };
+          }).toList();
 
-          // Calcul de l'échelle dynamique (max + marge de 20%)
           if (_absencesParClasse.isNotEmpty) {
             final currentMax = _absencesParClasse
                 .map((e) => e['value'] as int)
                 .reduce((a, b) => a > b ? a : b);
-            _maxAbsences = (currentMax * 1.2).ceilToDouble();
+            _maxAbsences = (currentMax * 1.3).ceilToDouble();
+            if (_maxAbsences < 5) _maxAbsences = 5;
           }
         });
       }
@@ -301,8 +322,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
       // Gestion sécurisée de la filière
       dynamic filiereData = cl['filiere'];
-      if (filiereData is List && filiereData.isNotEmpty)
+      if (filiereData is List && filiereData.isNotEmpty) {
         filiereData = filiereData[0];
+      }
       final String classLabel =
           filiereData?['nom_filiere'] ?? 'Classe Inconnue';
 
@@ -434,7 +456,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
             pw.Padding(
               padding: const pw.EdgeInsets.all(6),
               child: pw.Text(
-                "Nombre d'absence",
+                "NB",
                 style: pw.TextStyle(
                   color: PdfColors.white,
                   fontWeight: pw.FontWeight.bold,
@@ -612,7 +634,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      "BILAN MENSUEL D'ASSIDUITÉ",
+                      "BILAN MENSUEL D'ABSENCE",
                       style: pw.TextStyle(
                         fontSize: 11,
                         fontWeight: pw.FontWeight.bold,
@@ -676,7 +698,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
     await _finalizePdf(
       pdf,
-      "bilan_assiduite_${levelLabel.toLowerCase().replaceAll(' ', '_')}",
+      "bilan_absence_${levelLabel.toLowerCase().replaceAll(' ', '_')}",
     );
   }
 
@@ -854,7 +876,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
   }
 
   Widget _buildHealthScore() {
-    bool isGood = _seancesRestantes < (_totalSeances * 0.3);
+    bool isGood = _seancesRestantes == 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -1027,11 +1049,11 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   Widget _buildAcademicStats() {
     return _cardWrapper(
-      title: "Analyse des Absences par Niveau",
+      title: "Analyse des Absences par Classe",
       child: Container(
-        height: 300,
+        height: 350,
         padding: const EdgeInsets.only(
-          top: 20,
+          top: 30,
           right: 20,
           left: 10,
           bottom: 10,
@@ -1041,15 +1063,11 @@ class _DashboardState extends ConsumerState<Dashboard> {
             : BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: _maxAbsences, // Échelle correcte
+                  maxY: _maxAbsences,
                   barTouchData: BarTouchData(
                     enabled: true,
                     touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (group) => AppColors.primary,
-                      tooltipBorder: const BorderSide(
-                        color: Colors.white,
-                        width: 1,
-                      ),
+                      getTooltipColor: (group) => Colors.blueGrey[800]!,
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         return BarTooltipItem(
                           "${_absencesParClasse[groupIndex]['label']}\n",
@@ -1061,8 +1079,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
                             TextSpan(
                               text: "${rod.toY.toInt()} absences",
                               style: const TextStyle(
-                                color: Colors.white70,
+                                color: Colors.yellow,
                                 fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -1077,16 +1096,20 @@ class _DashboardState extends ConsumerState<Dashboard> {
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           int index = value.toInt();
-                          if (index < 0 || index >= _absencesParClasse.length)
+                          if (index < 0 || index >= _absencesParClasse.length) {
                             return const SizedBox();
+                          }
                           return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              _absencesParClasse[index]['label'],
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
+                            padding: const EdgeInsets.only(top: 10.0),
+                            child: Transform.rotate(
+                              angle: -0.5,
+                              child: Text(
+                                _absencesParClasse[index]['label'],
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueGrey,
+                                ),
                               ),
                             ),
                           );
@@ -1096,7 +1119,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 30,
+                        reservedSize: 35,
                         getTitlesWidget: (value, meta) => Text(
                           value.toInt().toString(),
                           style: const TextStyle(
@@ -1119,26 +1142,22 @@ class _DashboardState extends ConsumerState<Dashboard> {
                     getDrawingHorizontalLine: (value) => FlLine(
                       color: Colors.grey.withValues(alpha: 0.1),
                       strokeWidth: 1,
+                      dashArray: [5, 5],
                     ),
                   ),
                   borderData: FlBorderData(show: false),
                   barGroups: _absencesParClasse.asMap().entries.map((entry) {
+                    final double val = (entry.value['value'] as int).toDouble();
                     return BarChartGroupData(
                       x: entry.key,
+                      showingTooltipIndicators: [0],
                       barRods: [
                         BarChartRodData(
-                          toY: (entry.value['value'] as int).toDouble(),
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primary.withValues(alpha: 0.7),
-                            ],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          width: 18,
+                          toY: val,
+                          color: entry.value['color'],
+                          width: 22,
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(4),
+                            top: Radius.circular(6),
                           ),
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
@@ -1150,10 +1169,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
                     );
                   }).toList(),
                 ),
-                swapAnimationDuration: const Duration(
-                  milliseconds: 750,
-                ), // Animation
-                swapAnimationCurve: Curves.easeInOutCubic,
+                swapAnimationDuration: const Duration(milliseconds: 1000),
+                swapAnimationCurve: Curves.elasticOut,
               ),
       ),
     );
@@ -1239,7 +1256,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    DataCell(Text(p['count'].toString())),
+                    DataCell(Text("${p['done']} / ${p['assigned']}")),
                     DataCell(
                       SizedBox(width: 100, child: _progressBar(p['rate'])),
                     ),
@@ -1288,7 +1305,10 @@ class _DashboardState extends ConsumerState<Dashboard> {
         )
       ''')
         .eq('seance.date_seance', today)
-        .order('date_presence', ascending: false);
+        .order(
+          'date_presence',
+          ascending: false,
+        ); // Tri décroissant (plus récent en haut)
 
     return response;
   }
@@ -1317,18 +1337,21 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
           return Column(
             children: logs.map((log) {
-              final date = DateTime.parse(log['date_presence']);
-
+              final DateTime datePresence = DateTime.parse(
+                log['date_presence'],
+              ).toLocal();
               final surveillant = log['surveillant'];
               final seance = log['seance'];
               final ecue = seance['ecue'];
+
+              final DateTime dateSeance = DateTime.parse(seance['date_seance']);
 
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.history_edu, color: Colors.grey),
 
                 title: Text(
-                  "Enregistrement de présance par ${surveillant['prenom']} ${surveillant['nom']}",
+                  "Enregistrement de présence par ${surveillant['prenom']} ${surveillant['nom']}",
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -1336,12 +1359,12 @@ class _DashboardState extends ConsumerState<Dashboard> {
                 ),
 
                 subtitle: Text(
-                  "${ecue['intitule_ecue']} • Séance du ${seance['date_seance']}",
+                  "${ecue['intitule_ecue']} • Séance du ${DateFormat('dd/MM/yyyy').format(dateSeance)}",
                   style: const TextStyle(fontSize: 11),
                 ),
 
                 trailing: Text(
-                  DateFormat('HH:mm').format(date),
+                  DateFormat('HH:mm').format(datePresence),
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               );

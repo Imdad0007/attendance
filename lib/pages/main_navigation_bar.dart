@@ -67,7 +67,7 @@ class MainNavigationBar extends ConsumerWidget {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            letterSpacing: 2,
+            letterSpacing: 4,
             fontFamily: 'JetBrainsMono',
           ),
         ),
@@ -137,7 +137,7 @@ class MainNavigationBar extends ConsumerWidget {
         );
       case AppTab.presence:
         return const BottomNavigationBarItem(
-          icon: Icon(Icons.how_to_reg_rounded),
+          icon: Icon(Icons.how_to_reg_outlined),
           label: 'Présence',
         );
       case AppTab.historique:
@@ -148,7 +148,7 @@ class MainNavigationBar extends ConsumerWidget {
       case AppTab.utilisateurs:
         return const BottomNavigationBarItem(
           icon: Icon(Icons.group_add_rounded),
-          label: 'Admin',
+          label: 'Utilisateurs',
         );
       case AppTab.profil:
         return const BottomNavigationBarItem(

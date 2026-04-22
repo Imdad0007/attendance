@@ -2,8 +2,11 @@ import 'package:attendance/config/app_config.dart';
 import 'package:attendance/config/router.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:attendance/pages/historique.dart';
 import 'package:attendance/composants/notification_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -13,31 +16,54 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
-  );
-
-  // --- CHARGEMENT DES CONFIGURATIONS DYNAMIQUES ---
   try {
-    final response = await Supabase.instance.client
-        .from('app_settings')
-        .select('cle, valeur');
-
-    final Map<String, String> configMap = {};
-    for (var item in response) {
-      configMap[item['cle']] = item['valeur'];
-    }
-    AppConfig.updateFromMap(configMap);
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
   } catch (e) {
-    debugPrint("Erreur lors du chargement des app_settings: $e");
+    debugPrint("Erreur critique Supabase.initialize: $e");
   }
 
-  usePathUrlStrategy();
+  // Utilisation conditionnelle de l'URL strategy pour le Web
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
 
-  await initializeDateFormatting('fr_FR', null);
+  try {
+    await initializeDateFormatting('fr_FR', null);
+  } catch (e) {
+    debugPrint("Erreur intl: $e");
+  }
 
   runApp(const ProviderScope(child: MyApp()));
+
+  // Chargement asynchrone et non-bloquant des settings
+  _loadAppSettings();
+}
+
+Future<void> _loadAppSettings() async {
+  try {
+    final client = Supabase.instance.client;
+    final response = await client.from('app_settings').select('cle, valeur');
+
+    if (response is List) {
+      final Map<String, String> configMap = {};
+      for (var item in response) {
+        if (item is Map && item.containsKey('cle')) {
+          configMap[item['cle'].toString()] = item['valeur']?.toString() ?? '';
+        }
+      }
+      debugPrint(
+        "⚙️ Configuration chargée depuis Supabase: ${configMap.keys.join(', ')}",
+      );
+      AppConfig.updateFromMap(configMap);
+    }
+  } catch (e) {
+    debugPrint(
+      "Info: app_settings non chargés (normal si première install): $e",
+    );
+  }
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -58,26 +84,41 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   Future<void> _initAuth() async {
-    // Écouter les changements d'auth globalement
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-      if (data.event == AuthChangeEvent.signedIn ||
-          data.event == AuthChangeEvent.tokenRefreshed) {
-        final profile = await _authService.getCurrentUserProfile();
-        ref.read(userProvider.notifier).state = profile;
-      } else if (data.event == AuthChangeEvent.signedOut) {
-        ref.read(userProvider.notifier).state = null;
+    try {
+      // Écouter les changements d'auth globalement
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+        if (data.event == AuthChangeEvent.signedIn ||
+            data.event == AuthChangeEvent.tokenRefreshed) {
+          try {
+            final profile = await _authService.getCurrentUserProfile();
+            ref.read(userProvider.notifier).state = profile;
+          } catch (e) {
+            debugPrint("Erreur rafraîchissement profil: $e");
+          }
+        } else if (data.event == AuthChangeEvent.signedOut) {
+          // Reset de tous les états lors de la déconnexion
+          ref.invalidate(userProvider);
+          ref.invalidate(navigationTabProvider);
+          ref.invalidate(historiqueProvider);
+        }
+      });
+
+      // Chargement initial
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        try {
+          final profile = await _authService.getCurrentUserProfile();
+          ref.read(userProvider.notifier).state = profile;
+        } catch (e) {
+          debugPrint("Erreur chargement profil initial: $e");
+        }
       }
-    });
-
-    // Chargement initial
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      final profile = await _authService.getCurrentUserProfile();
-      ref.read(userProvider.notifier).state = profile;
-    }
-
-    if (mounted) {
-      setState(() => _isInitializing = false);
+    } catch (e) {
+      debugPrint("Erreur initAuth: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isInitializing = false);
+      }
     }
   }
 

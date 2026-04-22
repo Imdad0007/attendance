@@ -154,18 +154,10 @@ class _ClassListState extends ConsumerState<ClassList> {
     return Scaffold(
       backgroundColor: Colors.transparent,
 
-      // appBar: AppBar(
-      //   title: const Text(
-      //     "",
-      //     style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.black),
-      //   ),
-      //   backgroundColor: Colors.transparent,
-      //   elevation: 0,
-      //   leading: IconButton(
-      //     icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
-      //     onPressed: () => Navigator.pop(context),
-      //   ),
-      // ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        toolbarHeight: 1,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -200,7 +192,7 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   Widget _header() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
         border: const Border(
@@ -209,6 +201,7 @@ class _ClassListState extends ConsumerState<ClassList> {
       ),
       child: Row(
         children: [
+          
           _headerChip(widget.niveauLabel),
           const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
           _headerChip(widget.filiereLabel),

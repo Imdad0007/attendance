@@ -22,7 +22,7 @@ class SuccessRegistration extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
           onPressed: () {
             ref.read(navigationTabProvider.notifier).state = AppTab.presence;
-            context.go('/presence');
+            context.go('/');
           },
         ),
       ),
@@ -73,7 +73,7 @@ class SuccessRegistration extends ConsumerWidget {
                 onPressed: () {
                   ref.read(navigationTabProvider.notifier).state =
                       AppTab.presence;
-                  context.go('/presence');
+                  context.go('/');
                 },
               ),
             ],
