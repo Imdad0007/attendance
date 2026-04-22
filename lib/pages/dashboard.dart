@@ -157,7 +157,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
           .from('surveillant')
           .select('id_surveillant, nom, prenom')
           .filter('delete_at', 'is', null)
-          .eq('role', 'surveillant');
+          .eq('role', 'surveillant')
+          .order('nom')
+          .order('prenom');
       final List<Map<String, dynamic>> perfList = [];
 
       for (var s in (response as List)) {
