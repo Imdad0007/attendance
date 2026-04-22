@@ -322,43 +322,43 @@ class _HistoriqueState extends ConsumerState<Historique> {
     final data = await Supabase.instance.client
         .from('classe')
         .select('id_classe, filiere(nom_filiere), niveau(libelle)')
-        .order('niveau(libelle)')
-        .order('filiere(nom_filiere)');
+        .order('niveau(libelle)', ascending: true)
+        .order('filiere(nom_filiere)', ascending: true);
 
-    int getNiveauOrder(String libelle) {
-      switch (libelle) {
-        case 'L1':
-          return 1;
-        case 'L2':
-          return 2;
-        case 'L3':
-          return 3;
-        case 'M1':
-          return 4;
-        case 'M2':
-          return 5;
-        default:
-          return 999;
-      }
-    }
+    // int getNiveauOrder(String libelle) {
+    //   switch (libelle) {
+    //     case 'L1':
+    //       return 1;
+    //     case 'L2':
+    //       return 2;
+    //     case 'L3':
+    //       return 3;
+    //     case 'M1':
+    //       return 4;
+    //     case 'M2':
+    //       return 5;
+    //     default:
+    //       return 999;
+    //   }
+    // }
 
-    data.sort((a, b) {
-      final niveauA = a['niveau']['libelle'];
-      final niveauB = b['niveau']['libelle'];
+    // data.sort((a, b) {
+    //   final niveauA = a['niveau']['libelle'];
+    //   final niveauB = b['niveau']['libelle'];
 
-      final ordreA = getNiveauOrder(niveauA);
-      final ordreB = getNiveauOrder(niveauB);
+    //   final ordreA = getNiveauOrder(niveauA);
+    //   final ordreB = getNiveauOrder(niveauB);
 
-      if (ordreA != ordreB) {
-        return ordreA.compareTo(ordreB);
-      }
+    //   if (ordreA != ordreB) {
+    //     return ordreA.compareTo(ordreB);
+    //   }
 
-      // si même niveau → tri filière
-      final filiereA = a['filiere']['nom_filiere'];
-      final filiereB = b['filiere']['nom_filiere'];
+    //   // si même niveau → tri filière
+    //   final filiereA = a['filiere']['nom_filiere'];
+    //   final filiereB = b['filiere']['nom_filiere'];
 
-      return filiereA.compareTo(filiereB);
-    });
+    //   return filiereA.compareTo(filiereB);
+    // });
 
     showModalBottomSheet(
       context: context,

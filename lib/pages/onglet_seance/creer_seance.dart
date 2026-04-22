@@ -193,7 +193,7 @@ class _CreerSeanceState extends State<CreerSeance> {
       final response = await _supabase
           .from('professeur')
           .select('id_prof, nom, prenom')
-          .order('nom');
+          .order('nom', ascending: true);
       setState(() {
         professeurs = (response as List)
             .map(
@@ -216,7 +216,7 @@ class _CreerSeanceState extends State<CreerSeance> {
       final response = await _supabase
           .from('salle')
           .select('id_salle, nom')
-          .order('nom');
+          .order('nom', ascending: true);
       setState(() {
         salles = (response as List)
             .map((item) => {'id_salle': item['id_salle'], 'nom': item['nom']})
