@@ -366,6 +366,7 @@ class _CreerSeanceState extends State<CreerSeance> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(

@@ -58,7 +58,6 @@ class _CreerState extends State<Creer> {
         throw Exception("Session admin introuvable");
       }
 
-      final adminAccessToken = currentSession.accessToken;
       final adminRefreshToken = currentSession.refreshToken;
 
       ///  Création du nouvel utilisateur
@@ -105,6 +104,7 @@ class _CreerState extends State<Creer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
@@ -192,6 +192,7 @@ class _CreerState extends State<Creer> {
                 decoration: const InputDecoration(
                   labelText: "Rôle",
                   border: OutlineInputBorder(),
+                  
                 ),
                 items: const [
                   DropdownMenuItem(
@@ -201,6 +202,7 @@ class _CreerState extends State<Creer> {
                   DropdownMenuItem(
                     value: 'admin',
                     child: Text("Administrateur"),
+                    
                   ),
                 ],
                 onChanged: (val) {

@@ -31,8 +31,9 @@ class HomePage extends ConsumerWidget {
     final String nomSurveillant =
         user?.nomComplet ?? 'Utilisateur non connecté';
 
-    return SafeArea(
-      child: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F2F5),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
         child: Column(
           children: [

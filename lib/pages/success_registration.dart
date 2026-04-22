@@ -14,8 +14,8 @@ class SuccessRegistration extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
+      backgroundColor: const Color(0xFFF0F2F5),
+        appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.white,
         leading: IconButton(

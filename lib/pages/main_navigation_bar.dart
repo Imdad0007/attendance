@@ -79,6 +79,7 @@ class MainNavigationBar extends ConsumerWidget {
       ),
       // --- 6. BARRE DE NAVIGATION ---
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFFF0F2F5),
         currentIndex: authorizedTabs.indexOf(currentTab),
         onTap: (index) {
           // Navigue vers l'onglet correspondant dans la liste filtrée

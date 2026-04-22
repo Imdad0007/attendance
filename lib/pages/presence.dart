@@ -111,6 +111,7 @@ class _Presence extends ConsumerState<Presence> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+    backgroundColor: const Color(0xFFF0F2F5),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
