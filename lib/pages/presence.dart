@@ -111,7 +111,7 @@ class _Presence extends ConsumerState<Presence> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: const Color(0xFFF0F2F5),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -269,7 +269,7 @@ class _Presence extends ConsumerState<Presence> {
 
                       _infoRow(
                         Icons.school_outlined,
-                        "Classe : ${niveau['libelle'] ?? ''} ${filiere['nom_filiere'] ?? ''}",
+                        "Classe : ${filiere['nom_filiere'] ?? ''} - ${niveau['libelle'] ?? ''}",
                       ),
 
                       const SizedBox(height: 16),
@@ -292,18 +292,14 @@ class _Presence extends ConsumerState<Presence> {
                         Icons.room_outlined,
                         "Salle : ${salle['nom'] ?? ''}",
                       ),
-
-                      _infoRow(
-                        Icons.access_time,
-                        "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
-                      ),
-
+                      
                       const SizedBox(height: 10),
 
                       _infoRow(
                         Icons.access_time,
                         "Durée : ${_formatTime(s['heure_debut'])} - ${_formatTime(s['heure_fin'])}",
                       ),
+
 
                       const SizedBox(height: 12),
 

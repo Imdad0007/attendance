@@ -55,7 +55,7 @@ Future<void> _loadAppSettings() async {
         }
       }
       debugPrint(
-        "⚙️ Configuration chargée depuis Supabase: ${configMap.keys.join(', ')}",
+        "Configuration chargée depuis Supabase: ${configMap.keys.join(', ')}",
       );
       AppConfig.updateFromMap(configMap);
     }

@@ -1051,126 +1051,126 @@ class _DashboardState extends ConsumerState<Dashboard> {
     return _cardWrapper(
       title: "Analyse des Absences par Classe",
       child: Container(
-        height: 350,
-        padding: const EdgeInsets.only(
-          top: 30,
-          right: 20,
-          left: 10,
-          bottom: 10,
-        ),
+        height: 400,
+        padding: const EdgeInsets.only(top: 30),
         child: _absencesParClasse.isEmpty
             ? const Center(child: Text("Aucune donnée disponible"))
-            : BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: _maxAbsences,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (group) => Colors.blueGrey[800]!,
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        return BarTooltipItem(
-                          "${_absencesParClasse[groupIndex]['label']}\n",
-                          const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: "${rod.toY.toInt()} absences",
-                              style: const TextStyle(
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  // Largeur dynamique : 100px par classe, minimum 600px
+                  width: (_absencesParClasse.length * 100.0).clamp(600.0, double.infinity),
+                  padding: const EdgeInsets.only(right: 20, left: 10, bottom: 10),
+                  child: BarChart(
+                    BarChartData(
+                      maxY: _maxAbsences,
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          tooltipPadding: const EdgeInsets.all(4),
+                          getTooltipColor: (group) => Colors.blueGrey[800]!,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              "${rod.toY.toInt()} absences",
+                              const TextStyle(
                                 color: Colors.yellow,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
+                            );
+                          },
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 60,
+                            getTitlesWidget: (value, meta) {
+                              int index = value.toInt();
+                              if (index < 0 || index >= _absencesParClasse.length) {
+                                return const SizedBox();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: Transform.rotate(
+                                  angle: -0.5,
+                                  child: SizedBox(
+                                    width: 80,
+                                    child: Text(
+                                      _absencesParClasse[index]['label'],
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueGrey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 35,
+                            getTitlesWidget: (value, meta) => Text(
+                              value.toInt().toString(),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          strokeWidth: 1,
+                          dashArray: [5, 5],
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: _absencesParClasse.asMap().entries.map((entry) {
+                        final double val = (entry.value['value'] as int).toDouble();
+                        return BarChartGroupData(
+                          x: entry.key,
+                          showingTooltipIndicators: [0],
+                          barRods: [
+                            BarChartRodData(
+                              toY: val,
+                              color: entry.value['color'],
+                              width: 30, // Largeur des barres
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(6),
+                              ),
+                              backDrawRodData: BackgroundBarChartRodData(
+                                show: true,
+                                toY: _maxAbsences,
+                                color: Colors.grey.withValues(alpha: 0.05),
+                              ),
                             ),
                           ],
                         );
-                      },
+                      }).toList(),
+                      groupsSpace: 40, // Espace entre les groupes
                     ),
+                    swapAnimationDuration: const Duration(milliseconds: 1000),
+                    swapAnimationCurve: Curves.elasticOut,
                   ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          int index = value.toInt();
-                          if (index < 0 || index >= _absencesParClasse.length) {
-                            return const SizedBox();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10.0),
-                            child: Transform.rotate(
-                              angle: -0.5,
-                              child: Text(
-                                _absencesParClasse[index]['label'],
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 35,
-                        getTitlesWidget: (value, meta) => Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      strokeWidth: 1,
-                      dashArray: [5, 5],
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: _absencesParClasse.asMap().entries.map((entry) {
-                    final double val = (entry.value['value'] as int).toDouble();
-                    return BarChartGroupData(
-                      x: entry.key,
-                      showingTooltipIndicators: [0],
-                      barRods: [
-                        BarChartRodData(
-                          toY: val,
-                          color: entry.value['color'],
-                          width: 22,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(6),
-                          ),
-                          backDrawRodData: BackgroundBarChartRodData(
-                            show: true,
-                            toY: _maxAbsences,
-                            color: Colors.grey.withValues(alpha: 0.05),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
                 ),
-                swapAnimationDuration: const Duration(milliseconds: 1000),
-                swapAnimationCurve: Curves.elasticOut,
               ),
       ),
     );

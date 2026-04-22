@@ -21,6 +21,7 @@ class DropdownField<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         decoration: BoxDecoration(
@@ -29,6 +30,7 @@ class DropdownField<T> extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<T>(
+            dropdownColor: const Color(0xFFF0F2F5),
             value: value,
             hint: Text(
               label,

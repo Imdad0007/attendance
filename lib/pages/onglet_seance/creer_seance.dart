@@ -42,6 +42,34 @@ class _CreerSeanceState extends State<CreerSeance> {
   bool isNavigating = false;
   bool _isEditInitialized = false;
 
+  bool get _isFormValid =>
+      selectedNiveau != null &&
+      selectedFiliere != null &&
+      selectedEcue != null &&
+      selectedProf != null &&
+      selectedSalle != null &&
+      selectedSurveillant != null &&
+      heureDebut != null &&
+      heureFin != null &&
+      (heureDebut!.hour < heureFin!.hour ||
+          (heureDebut!.hour == heureFin!.hour &&
+              heureDebut!.minute < heureFin!.minute));
+
+  void _resetFields() {
+    setState(() {
+      selectedNiveau = null;
+      selectedFiliere = null;
+      selectedEcue = null;
+      selectedProf = null;
+      selectedSalle = null;
+      selectedSurveillant = null;
+      heureDebut = null;
+      heureFin = null;
+      filieres = [];
+      ecue = [];
+    });
+  }
+
   final _supabase = Supabase.instance.client;
 
   @override
@@ -317,33 +345,25 @@ class _CreerSeanceState extends State<CreerSeance> {
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
-  bool get _isFormValid =>
-      selectedNiveau != null &&
-      selectedFiliere != null &&
-      selectedEcue != null &&
-      selectedProf != null &&
-      selectedSalle != null &&
-      selectedSurveillant != null &&
-      heureDebut != null &&
-      heureFin != null &&
-      (heureDebut!.hour < heureFin!.hour ||
-          (heureDebut!.hour == heureFin!.hour &&
-              heureDebut!.minute < heureFin!.minute));
+  // Future<void> _selectTime(BuildContext context, bool isDebut) async {
+  //   final TimeOfDay? picked = await showTimePicker(
+  //     context: context,
+  //           backgroundColor: const Color(0xFFF0F2F5),
 
-  void _resetFields() {
-    setState(() {
-      selectedNiveau = null;
-      selectedFiliere = null;
-      selectedEcue = null;
-      selectedProf = null;
-      selectedSalle = null;
-      selectedSurveillant = null;
-      heureDebut = null;
-      heureFin = null;
-      filieres = [];
-      ecue = [];
-    });
-  }
+  //     initialTime: isDebut
+  //         ? const TimeOfDay(hour: 7, minute: 0)
+  //         : const TimeOfDay(hour: 12, minute: 0),
+  //     initialEntryMode: TimePickerEntryMode.inputOnly,
+  //     builder: (context, child) => MediaQuery(
+  //       data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+  //       child: child!,
+  //     ),
+  //     helpText: isDebut ? 'HEURE DE DÉBUT' : 'HEURE DE FIN',
+  //   );
+  //   if (picked != null) {
+  //     setState(() => isDebut ? heureDebut = picked : heureFin = picked);
+  //   }
+  // }
 
   Future<void> _selectTime(BuildContext context, bool isDebut) async {
     final TimeOfDay? picked = await showTimePicker(
@@ -352,21 +372,40 @@ class _CreerSeanceState extends State<CreerSeance> {
           ? const TimeOfDay(hour: 7, minute: 0)
           : const TimeOfDay(hour: 12, minute: 0),
       initialEntryMode: TimePickerEntryMode.inputOnly,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
       helpText: isDebut ? 'HEURE DE DÉBUT' : 'HEURE DE FIN',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1976D2),
+              onPrimary: Colors.white,
+              surface: Color(0xFFF0F2F5),
+            ),
+            dialogBackgroundColor: const Color(0xFFF0F2F5),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
+        );
+      },
     );
+
     if (picked != null) {
-      setState(() => isDebut ? heureDebut = picked : heureFin = picked);
+      setState(() {
+        if (isDebut) {
+          heureDebut = picked;
+        } else {
+          heureFin = picked;
+        }
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(

@@ -29,8 +29,7 @@ class HistoriqueRepository {
       params: {
         'p_surveillant_id': selectedSurveillantId,
         'p_ecue_id': ecueId,
-        'p_filiere_id':
-            classeId, // On envoie l'ID de la classe au paramètre p_filiere_id du SQL fourni
+        'p_classe_id': classeId, // On envoie l'ID de la classe
         'p_date': date != null ? DateFormat('yyyy-MM-dd').format(date) : null,
         'p_limit': limit,
         'p_offset': offset,
@@ -211,10 +210,12 @@ class _HistoriqueState extends ConsumerState<Historique> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: const Color(0xFFF0F2F5),
+
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Tous"),
+            title: const Text("Tous les Surveilants"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setSurveillant(null);
               Navigator.pop(sheetContext);
@@ -236,12 +237,38 @@ class _HistoriqueState extends ConsumerState<Historique> {
     );
   }
 
+  // void _pickDate() async {
+  //   final picked = await showDatePicker(
+  //     context: context,
+  //     initialDate: DateTime.now(),
+  //     firstDate: DateTime(2020),
+  //     lastDate: DateTime(2030),
+  //   );
+
+  //   if (picked != null) {
+  //     ref.read(historiqueProvider.notifier).setDate(picked);
+  //   }
+  // }
+
   void _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1976D2),
+              onPrimary: Colors.white,
+              surface: Color(0xFFF0F2F5),
+            ),
+            dialogBackgroundColor: const Color(0xFFF0F2F5),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -250,19 +277,31 @@ class _HistoriqueState extends ConsumerState<Historique> {
   }
 
   void _showEcues() async {
-    final data = await Supabase.instance.client
-        .from('ecue')
-        .select('id_ecue, intitule_ecue')
-        .order('intitule_ecue');
+ 
+
+         final notifier = ref.read(historiqueProvider.notifier);
+     
+        // Si une classe est sélectionnée, on ne récupère que les ECUEs de cette classe
+        PostgrestFilterBuilder query = Supabase.instance.client
+              .from('ecue')
+      
+             .select('id_ecue, intitule_ecue, ue!inner(id_classe)');
+     
+         if (notifier.selectedClasseId != null) {
+          query = query.eq('ue.id_classe', notifier.selectedClasseId!);
+         }
+      
+         final data = await query.order('intitule_ecue');
 
     if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: const Color(0xFFF0F2F5),
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Toutes les ecue"),
+            title: const Text("Tout les Ecue"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setEcue(null);
               Navigator.pop(sheetContext);
@@ -286,16 +325,47 @@ class _HistoriqueState extends ConsumerState<Historique> {
     final data = await Supabase.instance.client
         .from('classe')
         .select('id_classe, filiere(nom_filiere), niveau(libelle)')
-        .order('id_classe');
+        .order('niveau(libelle)')
+    .order('filiere(nom_filiere)');
 
-    if (!mounted) return;
+
+    int getNiveauOrder(String libelle) {
+  switch (libelle) {
+    case 'Licence 1': return 1;
+    case 'Licence 2': return 2;
+    case 'Licence 3': return 3;
+    case 'Master 1': return 4;
+    case 'Master 2': return 5;
+    default: return 999;
+  }
+}
+
+data.sort((a, b) {
+  final niveauA = a['niveau']['libelle'];
+  final niveauB = b['niveau']['libelle'];
+
+  final ordreA = getNiveauOrder(niveauA);
+  final ordreB = getNiveauOrder(niveauB);
+
+  if (ordreA != ordreB) {
+    return ordreA.compareTo(ordreB);
+  }
+
+  // si même niveau → tri filière
+  final filiereA = a['filiere']['nom_filiere'];
+  final filiereB = b['filiere']['nom_filiere'];
+
+  return filiereA.compareTo(filiereB);
+});
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: const Color(0xFFF0F2F5),
+
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Toutes les classes"),
+            title: const Text("Toutes les Classes"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setClasse(null);
               Navigator.pop(sheetContext);
@@ -385,7 +455,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
     final isAdmin = ref.watch(isAdminProvider);
 
     return Scaffold(
-     backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: const Color(0xFFF0F2F5),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

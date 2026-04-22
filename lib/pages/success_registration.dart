@@ -15,9 +15,9 @@ class SuccessRegistration extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-        appBar: AppBar(
+      appBar: AppBar(
         elevation: 0,
-        backgroundColor: AppColors.white,
+         backgroundColor: const Color(0xFFF0F2F5),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
           onPressed: () {

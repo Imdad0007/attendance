@@ -154,10 +154,7 @@ class _ClassListState extends ConsumerState<ClassList> {
     return Scaffold(
       backgroundColor: Colors.transparent,
 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        toolbarHeight: 1,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, toolbarHeight: 1),
       body: SafeArea(
         child: Stack(
           children: [
@@ -201,7 +198,6 @@ class _ClassListState extends ConsumerState<ClassList> {
       ),
       child: Row(
         children: [
-          
           _headerChip(widget.niveauLabel),
           const Icon(Icons.chevron_right, size: 20, color: AppColors.white),
           _headerChip(widget.filiereLabel),

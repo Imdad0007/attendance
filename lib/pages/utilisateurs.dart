@@ -11,7 +11,7 @@ class Utilisateur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: const Color(0xFFF0F2F5),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

@@ -209,7 +209,7 @@ class _SuivreSeanceState extends State<SuivreSeance> {
 
                       _infoRow(
                         Icons.school_outlined,
-                        "Classe : ${niveau['libelle'] ?? ''} ${filiere['nom_filiere'] ?? ''}",
+                        "Classe : ${filiere['nom_filiere'] ?? ''} - ${niveau['libelle'] ?? ''}",
                       ),
 
                       const SizedBox(height: 16),

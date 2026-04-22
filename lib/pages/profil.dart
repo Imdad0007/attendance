@@ -61,7 +61,7 @@ class _ProfilState extends ConsumerState<Profil> {
     final user = ref.watch(userProvider);
 
     return Scaffold(
-     backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: const Color(0xFFF0F2F5),
       body: SingleChildScrollView(
         child: Column(
           children: [
