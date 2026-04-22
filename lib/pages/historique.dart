@@ -298,7 +298,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
       builder: (sheetContext) => ListView(
         children: [
           ListTile(
-            title: const Text("Tout les Ecue"),
+            title: const Text("Tout les Ecuse"),
             onTap: () {
               ref.read(historiqueProvider.notifier).setEcue(null);
               Navigator.pop(sheetContext);
@@ -327,11 +327,11 @@ class _HistoriqueState extends ConsumerState<Historique> {
 
     int getNiveauOrder(String libelle) {
       switch (libelle) {
-        case 'Licence 1':
+        case 'L1':
           return 1;
-        case 'Licence 2':
+        case 'L2':
           return 2;
-        case 'Licence 3':
+        case 'L3':
           return 3;
         case 'M1':
           return 4;
