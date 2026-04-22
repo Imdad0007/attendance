@@ -117,7 +117,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              "Entrez votre email pour recevoir un lien de réinitialisation.",
+              "Entrez votre email pour recevoir un code de réinitialisation.",
             ),
             const SizedBox(height: 15),
             Textfield(
