@@ -4,18 +4,21 @@ import 'package:attendance/composants/dropdown_field.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button2.dart';
 import 'package:attendance/composants/notification_ui.dart';
+import 'package:attendance/config/adaptive_layout.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CreerSeance extends StatefulWidget {
+class CreerSeance extends ConsumerStatefulWidget {
   final String mode; // create | edit
   final Map<String, dynamic>? seance;
 
   const CreerSeance({super.key, required this.mode, this.seance});
 
   @override
-  State<CreerSeance> createState() => _CreerSeanceState();
+  ConsumerState<CreerSeance> createState() => _CreerSeanceState();
 }
 
-class _CreerSeanceState extends State<CreerSeance> {
+class _CreerSeanceState extends ConsumerState<CreerSeance> {
   int? selectedNiveau;
   int? selectedFiliere;
   int? selectedClasse;
@@ -404,12 +407,26 @@ class _CreerSeanceState extends State<CreerSeance> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (useAdaptiveNavigation) {
+              ref
+                  .read(adaptiveNavigationProvider.notifier)
+                  .state = widget.mode == 'edit'
+                  ? const AdaptiveNavigationState(
+                      page: AdaptivePage.suivreSeance,
+                    )
+                  : const AdaptiveNavigationState.none();
+              return;
+            }
+            Navigator.pop(context);
+          },
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
         title: Text(
@@ -620,7 +637,12 @@ class _CreerSeanceState extends State<CreerSeance> {
 
         if (mounted) {
           AppNotification.success("Séance modifiée avec succès");
-          Navigator.pop(context, true); // retour suivi
+          if (useMainLayoutRail(context)) {
+            ref.read(adaptiveNavigationProvider.notifier).state =
+                const AdaptiveNavigationState(page: AdaptivePage.suivreSeance);
+          } else {
+            Navigator.pop(context, true); // retour suivi
+          }
         }
       } else {
         await _supabase.from('seance').insert({

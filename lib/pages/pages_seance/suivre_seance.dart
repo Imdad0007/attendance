@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
 import 'package:attendance/pages/pages_seance/creer_seance.dart';
 import 'package:attendance/composants/notification_ui.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SuivreSeance extends StatefulWidget {
+class SuivreSeance extends ConsumerStatefulWidget {
   const SuivreSeance({super.key});
 
   @override
-  State<SuivreSeance> createState() => _SuivreSeanceState();
+  ConsumerState<SuivreSeance> createState() => _SuivreSeanceState();
 }
 
-class _SuivreSeanceState extends State<SuivreSeance> {
+class _SuivreSeanceState extends ConsumerState<SuivreSeance> {
   final _supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> seances = [];
@@ -105,6 +108,8 @@ class _SuivreSeanceState extends State<SuivreSeance> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
 
@@ -112,7 +117,14 @@ class _SuivreSeanceState extends State<SuivreSeance> {
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (useAdaptiveNavigation) {
+              ref.read(adaptiveNavigationProvider.notifier).state =
+                  const AdaptiveNavigationState.none();
+              return;
+            }
+            Navigator.pop(context);
+          },
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
         title: const Text(
@@ -359,6 +371,16 @@ class _SuivreSeanceState extends State<SuivreSeance> {
       'id_filiere': classe['id_filiere'],
       'id_classe': classe['id_classe'],
     };
+
+    if (useMainLayoutRail(context)) {
+      ref
+          .read(adaptiveNavigationProvider.notifier)
+          .state = AdaptiveNavigationState(
+        page: AdaptivePage.creerSeance,
+        extra: {'mode': 'edit', 'seance': normalizedSeance},
+      );
+      return;
+    }
 
     final result = await Navigator.push(
       context,

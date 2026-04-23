@@ -30,7 +30,7 @@ class InactivityNotifier extends StateNotifier<void> {
   }
 
   void _handleInactivity() async {
-    debugPrint("Inactivité détectée (20 min). Déconnexion automatique...");
+    debugPrint("Inactivité détectée. Déconnexion automatique...");
     final authService = AuthService();
     await authService.signOut();
 

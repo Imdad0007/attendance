@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
+import 'package:attendance/config/adaptive_layout.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:attendance/providers/navigation_provider.dart';
@@ -13,6 +14,18 @@ class SuccessRegistration extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
+    void closeSuccess() {
+      ref.read(navigationTabProvider.notifier).state = AppTab.presence;
+      ref.read(adaptiveNavigationProvider.notifier).state =
+          const AdaptiveNavigationState.none();
+
+      if (!useAdaptiveNavigation) {
+        context.go('/');
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
@@ -20,10 +33,7 @@ class SuccessRegistration extends ConsumerWidget {
         backgroundColor: const Color(0xFFF0F2F5),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
-          onPressed: () {
-            ref.read(navigationTabProvider.notifier).state = AppTab.presence;
-            context.go('/');
-          },
+          onPressed: closeSuccess,
         ),
       ),
       body: Center(
@@ -72,11 +82,7 @@ class SuccessRegistration extends ConsumerWidget {
                 const SizedBox(height: 60),
                 Button(
                   label: "TERMINER",
-                  onPressed: () {
-                    ref.read(navigationTabProvider.notifier).state =
-                        AppTab.presence;
-                    context.go('/');
-                  },
+                  onPressed: closeSuccess,
                 ),
               ],
             ),

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/button2.dart';
 import 'package:attendance/composants/notification_ui.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Creer extends StatefulWidget {
+class Creer extends ConsumerStatefulWidget {
   const Creer({super.key});
 
   @override
-  State<Creer> createState() => _CreerState();
+  ConsumerState<Creer> createState() => _CreerState();
 }
 
-class _CreerState extends State<Creer> {
+class _CreerState extends ConsumerState<Creer> {
   final _formKey = GlobalKey<FormState>();
 
   final _emailController = TextEditingController();
@@ -103,12 +106,21 @@ class _CreerState extends State<Creer> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (useAdaptiveNavigation) {
+              ref.read(adaptiveNavigationProvider.notifier).state =
+                  const AdaptiveNavigationState.none();
+              return;
+            }
+            Navigator.pop(context);
+          },
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
         title: const Text(

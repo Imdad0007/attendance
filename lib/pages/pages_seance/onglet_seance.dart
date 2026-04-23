@@ -1,14 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/carte.dart';
+import 'package:attendance/composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
 import 'package:attendance/pages/pages_seance/creer_seance.dart';
 import 'package:attendance/pages/pages_seance/suivre_seance.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Seance extends StatelessWidget {
+class Seance extends ConsumerWidget {
   const Seance({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       body: SafeArea(
@@ -18,7 +23,6 @@ class Seance extends StatelessWidget {
             return Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 500),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -26,7 +30,7 @@ class Seance extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'Programmer les séances',
+                          'Programmer les seances',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -36,12 +40,21 @@ class Seance extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: verticalSpacing * 2),
-
                     Carte(
-                      label: "Créer une séance",
+                      label: "Creer une seance",
                       icon: Icons.person_add,
-                      color: Color(0xFF2E7D32),
+                      color: const Color(0xFF2E7D32),
                       onTap: () {
+                        if (useAdaptiveNavigation) {
+                          ref
+                              .read(adaptiveNavigationProvider.notifier)
+                              .state = const AdaptiveNavigationState(
+                            page: AdaptivePage.creerSeance,
+                            extra: {'mode': 'create'},
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -51,14 +64,21 @@ class Seance extends StatelessWidget {
                         );
                       },
                     ),
-
                     SizedBox(height: verticalSpacing * 2),
-
                     Carte(
-                      label: "Suivre les séances",
+                      label: "Suivre les seances",
                       icon: Icons.list,
-                      color: Color(0xFF1565C0),
+                      color: const Color(0xFF1565C0),
                       onTap: () {
+                        if (useAdaptiveNavigation) {
+                          ref
+                              .read(adaptiveNavigationProvider.notifier)
+                              .state = const AdaptiveNavigationState(
+                            page: AdaptivePage.suivreSeance,
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(

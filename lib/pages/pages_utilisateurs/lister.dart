@@ -1,15 +1,18 @@
 import 'package:attendance/composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
+import 'package:attendance/providers/navigation_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class Lister extends StatefulWidget {
+class Lister extends ConsumerStatefulWidget {
   const Lister({super.key});
 
   @override
-  State<Lister> createState() => _ListerState();
+  ConsumerState<Lister> createState() => _ListerState();
 }
 
-class _ListerState extends State<Lister> {
+class _ListerState extends ConsumerState<Lister> {
   final SupabaseClient client = Supabase.instance.client;
 
   List<Map<String, dynamic>> surveillants = [];
@@ -54,13 +57,22 @@ class _ListerState extends State<Lister> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (useAdaptiveNavigation) {
+              ref.read(adaptiveNavigationProvider.notifier).state =
+                  const AdaptiveNavigationState.none();
+              return;
+            }
+            Navigator.pop(context);
+          },
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
         title: const Text(

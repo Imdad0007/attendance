@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 import 'package:attendance/composants/button.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/notification_ui.dart';
-import 'package:attendance/providers/navigation_provider.dart';
+import 'package:attendance/config/adaptive_layout.dart';
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:attendance/providers/user_provider.dart';
@@ -143,7 +143,15 @@ class _ClassListState extends ConsumerState<ClassList> {
 
       if (!mounted) return;
 
-      context.go('/success', extra: failed);
+      if (useMainLayoutRail(context)) {
+        ref.read(adaptiveNavigationProvider.notifier).state =
+            AdaptiveNavigationState(
+              page: AdaptivePage.successRegistration,
+              extra: failed,
+            );
+      } else {
+        context.go('/success', extra: failed);
+      }
     } catch (e) {
       AppNotification.error("Erreur lors de l'enregistrement", error: e);
     } finally {
@@ -153,8 +161,10 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bg,
 
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -193,8 +203,12 @@ class _ClassListState extends ConsumerState<ClassList> {
                   onPressed: () {
                     ref.read(navigationTabProvider.notifier).state =
                         AppTab.presence;
+                    ref.read(adaptiveNavigationProvider.notifier).state =
+                        const AdaptiveNavigationState.none();
 
-                    context.go('/');
+                    if (!useAdaptiveNavigation) {
+                      context.go('/');
+                    }
                   },
                 ),
               ),

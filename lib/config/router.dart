@@ -6,6 +6,7 @@ import 'package:attendance/pages/main_navigation_bar.dart';
 import 'package:attendance/pages/pages_presence/class_list.dart';
 import 'package:attendance/pages/pages_presence/onglet_presence.dart';
 import 'package:attendance/pages/pages_seance/creer_seance.dart';
+import 'package:attendance/pages/pages_seance/suivre_seance.dart';
 import 'package:attendance/pages/pages_presence/success_registration.dart';
 import 'package:attendance/pages/pages_historique/detail_historique.dart';
 import 'package:attendance/models/historique_model.dart';
@@ -153,6 +154,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                     FadeTransition(opacity: animation, child: child),
           );
         },
+      ),
+
+      GoRoute(
+        path: '/suivre_seance',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: const SuivreSeance(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
       ),
     ],
   );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
+import 'package:attendance/providers/navigation_provider.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -469,18 +471,22 @@ class _Presence extends ConsumerState<Presence> {
 
       if (!mounted) return;
 
-      context.go(
-        '/class_list',
-        extra: {
-          'students': studentsWithParents,
-          'id_seance': s['id_seance'],
-          'heureDebut': s['heure_debut'],
-          'heureFin': s['heure_fin'],
-          'niveauLabel': classe['niveau']['libelle'],
-          'filiereLabel': classe['filiere']['nom_filiere'],
-          'ecueLabel': s['ecue']['intitule_ecue'],
-        },
-      );
+      final extra = {
+        'students': studentsWithParents,
+        'id_seance': s['id_seance'],
+        'heureDebut': s['heure_debut'],
+        'heureFin': s['heure_fin'],
+        'niveauLabel': classe['niveau']['libelle'],
+        'filiereLabel': classe['filiere']['nom_filiere'],
+        'ecueLabel': s['ecue']['intitule_ecue'],
+      };
+
+      if (useMainLayoutRail(context)) {
+        ref.read(adaptiveNavigationProvider.notifier).state =
+            AdaptiveNavigationState(page: AdaptivePage.classList, extra: extra);
+      } else {
+        context.go('/class_list', extra: extra);
+      }
     } catch (e) {
       debugPrint("Erreur start presence: $e");
     } finally {

@@ -212,29 +212,27 @@ class _DashboardState extends ConsumerState<Dashboard> {
           .from('details_presence')
           .select('etudiant(classe(filiere(nom_filiere), niveau(libelle)))')
           .eq('statut', 'absent');
-        
 
       final List data = response as List;
 
+      data.sort((a, b) {
+        final etuA = a['etudiant'];
+        final etuB = b['etudiant'];
 
-data.sort((a, b) {
-  final etuA = a['etudiant'];
-  final etuB = b['etudiant'];
+        final classeA = etuA['classe'];
+        final classeB = etuB['classe'];
 
-  final classeA = etuA['classe'];
-  final classeB = etuB['classe'];
+        final filiereA = classeA['filiere']?['nom_filiere'] ?? '';
+        final filiereB = classeB['filiere']?['nom_filiere'] ?? '';
 
-  final filiereA = classeA['filiere']?['nom_filiere'] ?? '';
-  final filiereB = classeB['filiere']?['nom_filiere'] ?? '';
+        final niveauA = classeA['niveau']?['libelle'] ?? '';
+        final niveauB = classeB['niveau']?['libelle'] ?? '';
 
-  final niveauA = classeA['niveau']?['libelle'] ?? '';
-  final niveauB = classeB['niveau']?['libelle'] ?? '';
+        final compareFiliere = filiereA.compareTo(filiereB);
+        if (compareFiliere != 0) return compareFiliere;
 
-  final compareFiliere = filiereA.compareTo(filiereB);
-  if (compareFiliere != 0) return compareFiliere;
-
-  return niveauA.compareTo(niveauB);
-});
+        return niveauA.compareTo(niveauB);
+      });
 
       final Map<String, int> counts = {};
 

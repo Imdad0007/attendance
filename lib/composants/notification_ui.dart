@@ -122,9 +122,13 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
   @override
   Widget build(BuildContext context) {
     final style = _getStyle(widget.type);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxWidth = screenWidth >= 1100 ? 500.0 : 400.0;
+    final horizontalMargin = screenWidth >= 1100 ? 32.0 : 20.0;
+    final verticalOffset = screenWidth >= 1100 ? 24.0 : 20.0;
 
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 20,
+      top: MediaQuery.of(context).padding.top + verticalOffset,
       left: 0,
       right: 0,
       child: Material(
@@ -133,8 +137,8 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
           child: SlideTransition(
             position: _offsetAnimation,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              constraints: const BoxConstraints(maxWidth: 500),
+              margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,

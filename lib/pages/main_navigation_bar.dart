@@ -1,19 +1,26 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:attendance/composants/colors.dart';
+import 'package:attendance/models/historique_model.dart';
+import 'package:attendance/pages/dashboard.dart';
+import 'package:attendance/pages/home.dart';
+import 'package:attendance/pages/pages_historique/detail_historique.dart';
+import 'package:attendance/pages/pages_historique/onglet_historique.dart';
+import 'package:attendance/pages/pages_presence/class_list.dart';
+import 'package:attendance/pages/pages_presence/onglet_presence.dart';
+import 'package:attendance/pages/pages_presence/success_registration.dart';
+import 'package:attendance/pages/pages_seance/creer_seance.dart';
+import 'package:attendance/pages/pages_seance/onglet_seance.dart';
+import 'package:attendance/pages/pages_seance/suivre_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/creer_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/lister.dart';
 import 'package:attendance/pages/pages_utilisateurs/onglet_utilisateurs.dart';
+import 'package:attendance/pages/pages_utilisateurs/retirer.dart';
+import 'package:attendance/pages/profil.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:attendance/providers/role_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:attendance/composants/colors.dart';
-import 'package:attendance/providers/role_provider.dart';
-import 'package:attendance/providers/navigation_provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-
-// Pages
-import 'package:attendance/pages/home.dart';
-import 'package:attendance/pages/pages_presence/onglet_presence.dart';
-import 'package:attendance/pages/pages_historique/onglet_historique.dart';
-import 'package:attendance/pages/profil.dart';
-import 'package:attendance/pages/dashboard.dart';
-import 'package:attendance/pages/pages_seance/onglet_seance.dart';
 
 class MainNavigationBar extends ConsumerWidget {
   const MainNavigationBar({super.key});
@@ -25,6 +32,7 @@ class MainNavigationBar extends ConsumerWidget {
     final role = ref.watch(roleProvider);
     final currentTab = ref.watch(navigationTabProvider);
     final isRailExtended = ref.watch(railExtendedProvider);
+    final adaptiveState = ref.watch(adaptiveNavigationProvider);
 
     final List<AppTab> authorizedTabs = [
       if (isAdmin) AppTab.dashboard,
@@ -42,7 +50,7 @@ class MainNavigationBar extends ConsumerWidget {
 
     if (authorizedTabs.isEmpty) {
       return const Scaffold(
-        body: Center(child: Text("Erreur : Aucun onglet autorisé")),
+        body: Center(child: Text("Erreur : Aucun onglet autorise")),
       );
     }
 
@@ -50,26 +58,30 @@ class MainNavigationBar extends ConsumerWidget {
       Future.microtask(() {
         if (authorizedTabs.isNotEmpty) {
           ref.read(navigationTabProvider.notifier).state = authorizedTabs.first;
+          ref.read(adaptiveNavigationProvider.notifier).state =
+              const AdaptiveNavigationState.none();
         }
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final int currentIndex = authorizedTabs.indexOf(currentTab);
-
-    // Sécurité supplémentaire avant de passer à IndexedStack
+    final currentIndex = authorizedTabs.indexOf(currentTab);
     if (currentIndex < 0 || currentIndex >= authorizedTabs.length) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final responsive = ResponsiveBreakpoints.of(context);
 
-    // DÉTECTION BREAKPOINTS
-    final bool isDesktop =
+    final responsive = ResponsiveBreakpoints.of(context);
+    final isDesktop =
         responsive.largerThan(TABLET) ||
         MediaQuery.of(context).size.width > 1100;
-    final bool showHamburger = !isDesktop && (kIsWeb || responsive.isTablet);
+    final showHamburger = !isDesktop && (kIsWeb || responsive.isTablet);
 
-    // --- SHARED APPBAR RESPONSIVE ---
+    void selectTab(AppTab tab) {
+      ref.read(navigationTabProvider.notifier).state = tab;
+      ref.read(adaptiveNavigationProvider.notifier).state =
+          const AdaptiveNavigationState.none();
+    }
+
     PreferredSizeWidget buildAppBar({required bool hamburgerEnabled}) {
       return AppBar(
         backgroundColor: AppColors.primary,
@@ -118,7 +130,6 @@ class MainNavigationBar extends ConsumerWidget {
       );
     }
 
-    // --- LE DRAWER ---
     Widget buildDrawer() {
       return Drawer(
         child: Column(
@@ -173,7 +184,7 @@ class MainNavigationBar extends ConsumerWidget {
                     ),
                     selected: currentTab == tab,
                     onTap: () {
-                      ref.read(navigationTabProvider.notifier).state = tab;
+                      selectTab(tab);
                       Navigator.pop(context);
                     },
                   );
@@ -185,14 +196,13 @@ class MainNavigationBar extends ConsumerWidget {
       );
     }
 
-    // 1. MODE DESKTOP  (Avec Toggle pour le Rail)
     if (isDesktop) {
       return Scaffold(
         appBar: buildAppBar(hamburgerEnabled: false),
         body: Row(
           children: [
             NavigationRail(
-              extended: isRailExtended, // État contrôlé par l'utilisateur
+              extended: isRailExtended,
               minExtendedWidth: 250,
               minWidth: 80,
               backgroundColor: AppColors.bg,
@@ -215,10 +225,7 @@ class MainNavigationBar extends ConsumerWidget {
                 fontSize: 18,
               ),
               onDestinationSelected: (index) =>
-                  ref.read(navigationTabProvider.notifier).state =
-                      authorizedTabs[index],
-
-              // BOUTON DE BASSCULEMENT (Toggle)
+                  selectTab(authorizedTabs[index]),
               leading: Column(
                 children: [
                   const SizedBox(height: 10),
@@ -235,7 +242,6 @@ class MainNavigationBar extends ConsumerWidget {
                   const SizedBox(height: 20),
                 ],
               ),
-
               destinations: authorizedTabs.map((tab) {
                 final item = _getTabDetails(tab);
                 return NavigationRailDestination(
@@ -250,7 +256,7 @@ class MainNavigationBar extends ConsumerWidget {
               child: IndexedStack(
                 index: currentIndex,
                 children: authorizedTabs
-                    .map((tab) => _buildPage(tab, ref))
+                    .map((tab) => _buildPage(tab, ref, adaptiveState))
                     .toList(),
               ),
             ),
@@ -259,30 +265,31 @@ class MainNavigationBar extends ConsumerWidget {
       );
     }
 
-    // 2. SI MODE HAMBURGER (Tablette ou Web petit écran)
     if (showHamburger) {
       return Scaffold(
         appBar: buildAppBar(hamburgerEnabled: true),
         drawer: buildDrawer(),
         body: IndexedStack(
           index: currentIndex,
-          children: authorizedTabs.map((tab) => _buildPage(tab, ref)).toList(),
+          children: authorizedTabs
+              .map((tab) => _buildPage(tab, ref, adaptiveState))
+              .toList(),
         ),
       );
     }
 
-    // 3. SINON (Mobile Natif) -> Bottom Navigation
     return Scaffold(
       appBar: buildAppBar(hamburgerEnabled: false),
       body: IndexedStack(
         index: currentIndex,
-        children: authorizedTabs.map((tab) => _buildPage(tab, ref)).toList(),
+        children: authorizedTabs
+            .map((tab) => _buildPage(tab, ref, adaptiveState))
+            .toList(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: AppColors.bg,
         currentIndex: currentIndex,
-        onTap: (index) => ref.read(navigationTabProvider.notifier).state =
-            authorizedTabs[index],
+        onTap: (index) => selectTab(authorizedTabs[index]),
         selectedItemColor: AppColors.primary,
         type: BottomNavigationBarType.fixed,
         items: authorizedTabs.map((tab) {
@@ -303,9 +310,9 @@ class MainNavigationBar extends ConsumerWidget {
       case AppTab.home:
         return (icon: Icons.home_rounded, label: 'Accueil');
       case AppTab.seance:
-        return (icon: Icons.assignment_rounded, label: 'Séances');
+        return (icon: Icons.assignment_rounded, label: 'Seances');
       case AppTab.presence:
-        return (icon: Icons.how_to_reg_outlined, label: 'Présence');
+        return (icon: Icons.how_to_reg_outlined, label: 'Presence');
       case AppTab.historique:
         return (icon: Icons.history_rounded, label: 'Historique');
       case AppTab.utilisateurs:
@@ -315,7 +322,11 @@ class MainNavigationBar extends ConsumerWidget {
     }
   }
 
-  Widget _buildPage(AppTab tab, WidgetRef ref) {
+  Widget _buildPage(
+    AppTab tab,
+    WidgetRef ref,
+    AdaptiveNavigationState adaptiveState,
+  ) {
     switch (tab) {
       case AppTab.dashboard:
         return const Dashboard();
@@ -325,12 +336,51 @@ class MainNavigationBar extends ConsumerWidget {
               ref.read(navigationTabProvider.notifier).state = AppTab.presence,
         );
       case AppTab.seance:
+        if (adaptiveState.page == AdaptivePage.creerSeance) {
+          final extra = adaptiveState.extra as Map<String, dynamic>?;
+          return CreerSeance(
+            mode: extra?['mode'] ?? 'create',
+            seance: extra?['seance'],
+          );
+        }
+        if (adaptiveState.page == AdaptivePage.suivreSeance) {
+          return const SuivreSeance();
+        }
         return const Seance();
       case AppTab.presence:
+        if (adaptiveState.page == AdaptivePage.classList) {
+          final data = adaptiveState.extra as Map<String, dynamic>;
+          return ClassList(
+            students: List<Map<String, dynamic>>.from(data['students']),
+            idSeance: data['id_seance'] as int,
+            heureDebut: data['heureDebut'] as String,
+            heureFin: data['heureFin'] as String,
+            niveauLabel: data['niveauLabel'] as String,
+            filiereLabel: data['filiereLabel'] as String,
+            ecueLabel: data['ecueLabel'] as String,
+          );
+        }
+        if (adaptiveState.page == AdaptivePage.successRegistration) {
+          return SuccessRegistration(
+            failedNotifications: adaptiveState.extra as int? ?? 0,
+          );
+        }
         return const Presence();
       case AppTab.historique:
+        if (adaptiveState.page == AdaptivePage.detailHistorique) {
+          return DetailHistorique(item: adaptiveState.extra as HistoriqueModel);
+        }
         return const Historique();
       case AppTab.utilisateurs:
+        if (adaptiveState.page == AdaptivePage.creerUtilisateur) {
+          return const Creer();
+        }
+        if (adaptiveState.page == AdaptivePage.listerUtilisateurs) {
+          return const Lister();
+        }
+        if (adaptiveState.page == AdaptivePage.retirerUtilisateur) {
+          return const Retirer();
+        }
         return const Utilisateur();
       case AppTab.profil:
         return const Profil();

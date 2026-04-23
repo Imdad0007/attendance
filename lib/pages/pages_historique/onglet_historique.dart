@@ -7,6 +7,8 @@ import 'package:attendance/composants/colors.dart';
 import '../../models/historique_model.dart';
 import '../../providers/user_provider.dart';
 import 'package:attendance/providers/role_provider.dart';
+import 'package:attendance/config/adaptive_layout.dart';
+import 'package:attendance/providers/navigation_provider.dart';
 import 'package:go_router/go_router.dart';
 
 /// ===================== REPOSITORY =====================
@@ -711,7 +713,19 @@ class _HistoriqueCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    onPressed: () => context.push('/detail-historique', extra: item),
+    onPressed: () {
+      if (useMainLayoutRail(context)) {
+        final container = ProviderScope.containerOf(context, listen: false);
+        container
+            .read(adaptiveNavigationProvider.notifier)
+            .state = AdaptiveNavigationState(
+          page: AdaptivePage.detailHistorique,
+          extra: item,
+        );
+        return;
+      }
+      context.push('/detail-historique', extra: item);
+    },
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: const [

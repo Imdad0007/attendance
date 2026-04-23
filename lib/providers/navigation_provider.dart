@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// 1. L'Enum doit être défini ici
 enum AppTab {
   dashboard,
   home,
@@ -11,10 +10,35 @@ enum AppTab {
   profil,
 }
 
-// 2. Le provider utilise cet Enum
+enum AdaptivePage {
+  none,
+  creerSeance,
+  suivreSeance,
+  detailHistorique,
+  classList,
+  successRegistration,
+  creerUtilisateur,
+  listerUtilisateurs,
+  retirerUtilisateur,
+}
+
+class AdaptiveNavigationState {
+  final AdaptivePage page;
+  final Object? extra;
+
+  const AdaptiveNavigationState({this.page = AdaptivePage.none, this.extra});
+
+  const AdaptiveNavigationState.none() : this();
+}
+
 final navigationTabProvider = StateProvider<AppTab>((ref) {
   return AppTab.home;
 });
 
-// 3. Provider pour l'état étendu ou réduit du NavigationRail (Desktop)
+final adaptiveNavigationProvider = StateProvider<AdaptiveNavigationState>((
+  ref,
+) {
+  return const AdaptiveNavigationState.none();
+});
+
 final railExtendedProvider = StateProvider<bool>((ref) => true);

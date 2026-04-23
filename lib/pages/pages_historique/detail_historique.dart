@@ -5,17 +5,20 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/historique_model.dart';
 import '../../composants/colors.dart';
+import 'package:attendance/config/adaptive_layout.dart';
+import 'package:attendance/providers/navigation_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DetailHistorique extends StatefulWidget {
+class DetailHistorique extends ConsumerStatefulWidget {
   final HistoriqueModel item;
 
   const DetailHistorique({super.key, required this.item});
 
   @override
-  State<DetailHistorique> createState() => _DetailHistoriqueState();
+  ConsumerState<DetailHistorique> createState() => _DetailHistoriqueState();
 }
 
-class _DetailHistoriqueState extends State<DetailHistorique> {
+class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
   List<Map<String, dynamic>> absents = [];
   Uint8List? signatureBytes;
   bool isLoading = true;
@@ -113,8 +116,10 @@ class _DetailHistoriqueState extends State<DetailHistorique> {
 
   @override
   Widget build(BuildContext context) {
+    final useAdaptiveNavigation = useMainLayoutRail(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text(
           "Détails de l'historique",
@@ -124,7 +129,14 @@ class _DetailHistoriqueState extends State<DetailHistorique> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (useAdaptiveNavigation) {
+              ref.read(adaptiveNavigationProvider.notifier).state =
+                  const AdaptiveNavigationState.none();
+              return;
+            }
+            Navigator.pop(context);
+          },
         ),
       ),
       body: Align(
