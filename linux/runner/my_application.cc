@@ -1,4 +1,4 @@
-#include "attendancelication.h"
+#include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -12,7 +12,7 @@ struct _MyApplication {
   char** dart_entrypoint_arguments;
 };
 
-G_DEFINE_TYPE(MyApplication, attendancelication, GTK_TYPE_APPLICATION)
+G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
@@ -20,8 +20,8 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
 }
 
 // Implements GApplication::activate.
-static void attendancelication_activate(GApplication* application) {
-  MyApplication* self = attendanceLICATION(application);
+static void my_application_activate(GApplication* application) {
+  MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -79,10 +79,10 @@ static void attendancelication_activate(GApplication* application) {
 }
 
 // Implements GApplication::local_command_line.
-static gboolean attendancelication_local_command_line(GApplication* application,
+static gboolean my_application_local_command_line(GApplication* application,
                                                   gchar*** arguments,
                                                   int* exit_status) {
-  MyApplication* self = attendanceLICATION(application);
+  MyApplication* self = MY_APPLICATION(application);
   // Strip out the first argument as it is the binary name.
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
 
@@ -100,49 +100,49 @@ static gboolean attendancelication_local_command_line(GApplication* application,
 }
 
 // Implements GApplication::startup.
-static void attendancelication_startup(GApplication* application) {
-  // MyApplication* self = attendanceLICATION(object);
+static void my_application_startup(GApplication* application) {
+  // MyApplication* self = MY_APPLICATION(object);
 
   // Perform any actions required at application startup.
 
-  G_APPLICATION_CLASS(attendancelication_parent_class)->startup(application);
+  G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
 // Implements GApplication::shutdown.
-static void attendancelication_shutdown(GApplication* application) {
-  // MyApplication* self = attendanceLICATION(object);
+static void my_application_shutdown(GApplication* application) {
+  // MyApplication* self = MY_APPLICATION(object);
 
   // Perform any actions required at application shutdown.
 
-  G_APPLICATION_CLASS(attendancelication_parent_class)->shutdown(application);
+  G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
 
 // Implements GObject::dispose.
-static void attendancelication_dispose(GObject* object) {
-  MyApplication* self = attendanceLICATION(object);
+static void my_application_dispose(GObject* object) {
+  MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
-  G_OBJECT_CLASS(attendancelication_parent_class)->dispose(object);
+  G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 
-static void attendancelication_class_init(MyApplicationClass* klass) {
-  G_APPLICATION_CLASS(klass)->activate = attendancelication_activate;
+static void my_application_class_init(MyApplicationClass* klass) {
+  G_APPLICATION_CLASS(klass)->activate = my_application_activate;
   G_APPLICATION_CLASS(klass)->local_command_line =
-      attendancelication_local_command_line;
-  G_APPLICATION_CLASS(klass)->startup = attendancelication_startup;
-  G_APPLICATION_CLASS(klass)->shutdown = attendancelication_shutdown;
-  G_OBJECT_CLASS(klass)->dispose = attendancelication_dispose;
+      my_application_local_command_line;
+  G_APPLICATION_CLASS(klass)->startup = my_application_startup;
+  G_APPLICATION_CLASS(klass)->shutdown = my_application_shutdown;
+  G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
 }
 
-static void attendancelication_init(MyApplication* self) {}
+static void my_application_init(MyApplication* self) {}
 
-MyApplication* attendancelication_new() {
+MyApplication* my_application_new() {
   // Set the program name to the application ID, which helps various systems
   // like GTK and desktop environments map this running application to its
   // corresponding .desktop file. This ensures better integration by allowing
   // the application to be recognized beyond its binary name.
   g_set_prgname(APPLICATION_ID);
 
-  return attendanceLICATION(g_object_new(attendancelication_get_type(),
+  return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
                                      G_APPLICATION_NON_UNIQUE, nullptr));
 }

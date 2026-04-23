@@ -211,9 +211,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
       final response = await _supabase
           .from('details_presence')
           .select('etudiant(classe(filiere(nom_filiere), niveau(libelle)))')
-          .eq('statut', 'absent')
-          .order('libelle')
-          .order('nom_filiere');
+          .eq('statut', 'absent');
+        
 
       final List data = response as List;
 
