@@ -103,63 +103,71 @@ class _RetirerState extends State<Retirer> {
         ),
         backgroundColor: const Color(0xFFC62828),
       ),
-      body: _loading && _surveillants.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _fetchSurveillants,
-              child: _surveillants.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.person_off_outlined,
-                            size: 80,
-                            color: AppColors.grey.withOpacity(0.3),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: _loading && _surveillants.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _fetchSurveillants,
+                  child: _surveillants.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.person_off_outlined,
+                                size: 80,
+                                color: AppColors.grey.withOpacity(0.3),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Aucun surveillant trouvé",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.grey,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            "Aucun surveillant trouvé",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _surveillants.length,
-                      separatorBuilder: (_, __) => const Divider(),
-                      itemBuilder: (context, index) {
-                        final surveillant = _surveillants[index];
-                        final nomComplet =
-                            '${surveillant['nom']} ${surveillant['prenom']}';
-                        return ListTile(
-                          title: Text(
-                            nomComplet,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                              size: 40.0,
-                            ),
-                            onPressed: () => _handleRetrait(
-                              surveillant['id_surveillant'],
-                              nomComplet,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _surveillants.length,
+                          separatorBuilder: (_, __) => const Divider(),
+                          itemBuilder: (context, index) {
+                            final surveillant = _surveillants[index];
+                            final nomComplet =
+                                '${surveillant['nom']} ${surveillant['prenom']}';
+                            return ListTile(
+                              title: Text(
+                                nomComplet,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                  size: 40.0,
+                                ),
+                                onPressed: () => _handleRetrait(
+                                  surveillant['id_surveillant'],
+                                  nomComplet,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+        ),
+      ),
     );
   }
 }
+
+

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/colors.dart';
-import 'package:attendance/pages/onglet_seance/creer_seance.dart';
+import 'package:attendance/pages/pages_seance/creer_seance.dart';
 import 'package:attendance/composants/notification_ui.dart';
 
 class SuivreSeance extends StatefulWidget {
@@ -121,19 +121,24 @@ class _SuivreSeanceState extends State<SuivreSeance> {
         ),
       ),
 
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: seances.length,
-                itemBuilder: (context, index) {
-                  final s = seances[index];
-                  return _buildCard(s);
-                },
-              ),
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: seances.length,
+                    itemBuilder: (context, index) {
+                      final s = seances[index];
+                      return _buildCard(s);
+                    },
+                  ),
+                ),
+        ),
+      ),
     );
   }
 
@@ -420,3 +425,5 @@ class _SuivreSeanceState extends State<SuivreSeance> {
     );
   }
 }
+
+

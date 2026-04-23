@@ -36,6 +36,7 @@ class AppColors {
   );
 
   static const primary = Color(0xFF003e7d);
+  static const bg = Color(0xFFF0F2F5);
   static const white = Colors.white;
   static const black = Colors.black;
   static const grey = Colors.grey;
@@ -58,3 +59,5 @@ class AppColors {
   // // Bleu (plus contrasté)
   // static const blue = Color(0xFF1565C0);    // Blue 800
 }
+
+

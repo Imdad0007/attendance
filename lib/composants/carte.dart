@@ -17,8 +17,10 @@ class Carte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isWide = MediaQuery.of(context).size.width > 600;
+
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 420),
+      constraints: BoxConstraints(maxWidth: isWide ? 600 : 420),
       child: GestureDetector(
         onTap: onTap,
 
@@ -28,7 +30,10 @@ class Carte extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 22),
+            padding: EdgeInsets.symmetric(
+              vertical: isWide ? 35 : 28,
+              horizontal: isWide ? 30 : 22,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               color: color,
@@ -40,9 +45,9 @@ class Carte extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.white,
-                      fontSize: 20,
+                      fontSize: isWide ? 24 : 20,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -60,3 +65,5 @@ class Carte extends StatelessWidget {
     );
   }
 }
+
+

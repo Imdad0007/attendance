@@ -3,13 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendance/pages/login.dart';
 import 'package:attendance/pages/main_navigation_bar.dart';
-import 'package:attendance/pages/class_list.dart';
-import 'package:attendance/pages/presence.dart';
-import 'package:attendance/pages/onglet_seance/creer_seance.dart';
-import 'package:attendance/pages/success_registration.dart';
-import 'package:attendance/pages/detail_historique.dart';
+import 'package:attendance/pages/pages_presence/class_list.dart';
+import 'package:attendance/pages/pages_presence/onglet_presence.dart';
+import 'package:attendance/pages/pages_seance/creer_seance.dart';
+import 'package:attendance/pages/pages_presence/success_registration.dart';
+import 'package:attendance/pages/pages_historique/detail_historique.dart';
 import 'package:attendance/models/historique_model.dart';
 import 'package:attendance/providers/user_provider.dart';
+import 'package:attendance/composants/notification_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide Presence;
 
 class RouterNotifier extends ChangeNotifier {
@@ -23,6 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = RouterNotifier(ref);
 
   return GoRouter(
+    navigatorKey: AppNotification.navigatorKey,
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: (context, state) {

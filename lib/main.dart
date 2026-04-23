@@ -3,8 +3,9 @@ import 'package:attendance/config/router.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/providers/navigation_provider.dart';
-import 'package:attendance/pages/historique.dart';
+import 'package:attendance/pages/pages_historique/onglet_historique.dart';
 import 'package:attendance/composants/notification_ui.dart';
+import 'package:attendance/providers/inactivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,19 +136,26 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     return MaterialApp.router(
       routerConfig: router,
-      scaffoldMessengerKey: AppNotification.messengerKey,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         if (child == null) return const SizedBox();
 
-        return ResponsiveBreakpoints.builder(
-          child: MaxWidthBox(maxWidth: 1200, child: child),
-          breakpoints: const [
-            Breakpoint(start: 0, end: 600, name: MOBILE),
-            Breakpoint(start: 601, end: 1024, name: TABLET),
-            Breakpoint(start: 1025, end: 1920, name: DESKTOP),
-            Breakpoint(start: 1921, end: double.infinity, name: '4K'),
-          ],
+        return Listener(
+          onPointerDown: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
+          onPointerMove: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
+          onPointerHover: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
+          child: ResponsiveBreakpoints.builder(
+            child: ResponsiveScaledBox(
+              width: MediaQuery.of(context).size.width,
+              child: child,
+            ),
+            breakpoints: const [
+              Breakpoint(start: 0, end: 600, name: MOBILE),
+              Breakpoint(start: 601, end: 1024, name: TABLET),
+              Breakpoint(start: 1025, end: 1920, name: DESKTOP),
+              Breakpoint(start: 1921, end: double.infinity, name: '4K'),
+            ],
+          ),
         );
       },
     );

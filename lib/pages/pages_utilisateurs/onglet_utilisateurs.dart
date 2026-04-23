@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/carte.dart';
-import 'package:attendance/pages/onglet_seance/creer_seance.dart';
-import 'package:attendance/pages/onglet_seance/suivre_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/creer_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/retirer.dart';
+import 'package:attendance/pages/pages_utilisateurs/lister.dart';
 
-class Seance extends StatelessWidget {
-  const Seance({super.key});
+class Utilisateur extends StatelessWidget {
+  const Utilisateur({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,7 @@ class Seance extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'Programmer les séances',
+                          'Gérer les utilisateurs',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -38,31 +39,46 @@ class Seance extends StatelessWidget {
                     SizedBox(height: verticalSpacing * 2),
 
                     Carte(
-                      label: "Créer une séance",
+                      label: "Créer un compte",
                       icon: Icons.person_add,
                       color: Color(0xFF2E7D32),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const CreerSeance(mode: 'create'),
+                            builder: (context) => const Creer(),
                           ),
                         );
                       },
                     ),
 
-                    SizedBox(height: verticalSpacing * 2),
+                    SizedBox(height: verticalSpacing),
 
                     Carte(
-                      label: "Suivre les séances",
+                      label: "Lister les surveillants",
                       icon: Icons.list,
                       color: Color(0xFF1565C0),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const SuivreSeance(),
+                            builder: (context) => const Lister(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: verticalSpacing),
+
+                    Carte(
+                      label: "Retirer un compte",
+                      icon: Icons.delete,
+                      color: Color(0xFFC62828),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Retirer(),
                           ),
                         );
                       },
@@ -77,3 +93,5 @@ class Seance extends StatelessWidget {
     );
   }
 }
+
+

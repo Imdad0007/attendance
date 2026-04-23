@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance/composants/colors.dart';
-import '../models/historique_model.dart';
-import '../providers/user_provider.dart';
+import '../../models/historique_model.dart';
+import '../../providers/user_provider.dart';
 import 'package:attendance/providers/role_provider.dart';
 import 'package:go_router/go_router.dart';
 
@@ -459,103 +459,108 @@ class _HistoriqueState extends ConsumerState<Historique> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Historique",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.black,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Consultez les sessions passées",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.grey.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: SizedBox(
-                height: 50,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _resetFilterIcon(notifier),
-                    if (isAdmin)
-                      _filterItem(
-                        "Surveillants",
-                        Icons.person_search_outlined,
-                        notifier.selectedSurveillantId != null,
-                        _showSurveillants,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Historique",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.black,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    _filterItem(
-                      "Classes",
-                      Icons.school_outlined,
-                      notifier.selectedClasseId != null,
-                      _showClasses,
-                    ),
-                    _filterItem(
-                      "Ecues",
-                      Icons.book_outlined,
-                      notifier.selectedEcueId != null,
-                      _showEcues,
-                    ),
-                    _filterItem(
-                      "Dates",
-                      Icons.calendar_month_outlined,
-                      notifier.selectedDate != null,
-                      _pickDate,
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        "Consultez les sessions passées",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.grey.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
 
-            Expanded(
-              child: state.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: SizedBox(
+                    height: 50,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        _resetFilterIcon(notifier),
+                        if (isAdmin)
+                          _filterItem(
+                            "Surveillants",
+                            Icons.person_search_outlined,
+                            notifier.selectedSurveillantId != null,
+                            _showSurveillants,
+                          ),
+                        _filterItem(
+                          "Classes",
+                          Icons.school_outlined,
+                          notifier.selectedClasseId != null,
+                          _showClasses,
+                        ),
+                        _filterItem(
+                          "Ecues",
+                          Icons.book_outlined,
+                          notifier.selectedEcueId != null,
+                          _showEcues,
+                        ),
+                        _filterItem(
+                          "Dates",
+                          Icons.calendar_month_outlined,
+                          notifier.selectedDate != null,
+                          _pickDate,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                error: (e, _) => _errorState(),
-                data: (historiques) {
-                  if (historiques.isEmpty) return _emptyState();
-                  return RefreshIndicator(
-                    color: AppColors.primary,
-                    onRefresh: () => notifier.loadInitial(),
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      itemCount:
-                          historiques.length + (notifier._hasMore ? 1 : 0),
-                      itemBuilder: (_, i) => i == historiques.length
-                          ? _loadingMoreIndicator()
-                          : _HistoriqueCard(item: historiques[i]),
+
+                Expanded(
+                  child: state.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
                     ),
-                  );
-                },
-              ),
+                    error: (e, _) => _errorState(),
+                    data: (historiques) {
+                      if (historiques.isEmpty) return _emptyState();
+                      return RefreshIndicator(
+                        color: AppColors.primary,
+                        onRefresh: () => notifier.loadInitial(),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          itemCount:
+                              historiques.length + (notifier._hasMore ? 1 : 0),
+                          itemBuilder: (_, i) => i == historiques.length
+                              ? _loadingMoreIndicator()
+                              : _HistoriqueCard(item: historiques[i]),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -767,3 +772,5 @@ class _HistoriqueCard extends StatelessWidget {
 
   String _formatTime(String t) => t.length >= 5 ? t.substring(0, 5) : t;
 }
+
+

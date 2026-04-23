@@ -15,3 +15,5 @@ final isSurveillantProvider = Provider<bool>((ref) {
   final role = ref.watch(roleProvider);
   return role?.toLowerCase() == 'surveillant';
 });
+
+

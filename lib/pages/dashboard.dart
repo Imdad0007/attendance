@@ -11,6 +11,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:attendance/composants/notification_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:attendance/services/web_download_service.dart';
+import 'package:attendance/services/native_download_service.dart';
 
 class Dashboard extends ConsumerStatefulWidget {
   const Dashboard({super.key});
@@ -159,7 +161,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
           .filter('delete_at', 'is', null)
           .eq('role', 'surveillant')
           .order('nom', ascending: true)
-          .order('prenom', ascending: true);
+          .order('prenom');
       final List<Map<String, dynamic>> perfList = [];
 
       for (var s in (response as List)) {
@@ -216,9 +218,15 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
       for (var item in data) {
         try {
-          final classe = item['etudiant']['classe'];
-          final filiere = classe['filiere']['nom_filiere'] ?? 'Inconnue';
-          final niveau = classe['niveau']['libelle'] ?? '';
+          dynamic etu = item['etudiant'];
+          if (etu is List && etu.isNotEmpty) etu = etu[0];
+          if (etu == null) continue;
+
+          final classe = etu['classe'];
+          if (classe == null) continue;
+
+          final filiere = classe['filiere']?['nom_filiere'] ?? 'Inconnue';
+          final niveau = classe['niveau']?['libelle'] ?? '';
           final String label = "$filiere - $niveau";
           counts[label] = (counts[label] ?? 0) + 1;
         } catch (e) {
@@ -267,7 +275,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   Future<void> _generateLevelReport(int levelId, String levelLabel) async {
     try {
-      AppNotification.info("Préparation du bilan pour $levelLabel...");
+      AppNotification.info(
+  "Préparation du bilan pour $levelLabel...",
+);
       final now = DateTime.now();
       final firstDay = DateTime(now.year, now.month, 1).toIso8601String();
 
@@ -704,16 +714,19 @@ class _DashboardState extends ConsumerState<Dashboard> {
     );
   }
 
+
+// ... (dans la classe _DashboardState)
+
   Future<void> _finalizePdf(pw.Document pdf, String baseName) async {
     final bytes = await pdf.save();
     final filename =
         '${baseName}_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf';
+
     if (kIsWeb) {
-      await Printing.layoutPdf(
-        onLayout: (format) async => bytes,
-        name: filename,
-      );
+      // Téléchargement direct pour le Web (Mobile & Desktop)
+      WebDownloadService.downloadBytes(bytes, filename);
     } else {
+      // Partage natif pour iOS/Android (application installée)
       await Printing.sharePdf(bytes: bytes, filename: filename);
     }
     AppNotification.success("Rapport généré avec succès !");
@@ -833,7 +846,28 @@ class _DashboardState extends ConsumerState<Dashboard> {
                       },
                     ),
                     const SizedBox(height: 24),
-                    _buildPerformanceAndAudit(),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (MediaQuery.of(context).size.width > 1000) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildPerformanceSurveillants()),
+                              const SizedBox(width: 20),
+                              Expanded(child: _buildPerformanceAndAudit()),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildPerformanceSurveillants(),
+                              const SizedBox(height: 24),
+                              _buildPerformanceAndAudit(),
+                            ],
+                          );
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -844,80 +878,113 @@ class _DashboardState extends ConsumerState<Dashboard> {
   Widget _buildTopBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Supervision",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1D1E),
-                  ),
+        final bool isWide = constraints.maxWidth > 800;
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: isWide ? 10 : 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Supervision",
+                      style: TextStyle(
+                        fontSize: isWide ? 32 : 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1D1E),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: isWide ? 18 : 14,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            DateFormat(
+                              "EEEE d MMMM yyyy",
+                              "fr_FR",
+                            ).format(DateTime.now()),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: isWide ? 16 : 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Text(
-                  DateFormat(
-                    "EEEE d MMMM yyyy",
-                    "fr_FR",
-                  ).format(DateTime.now()),
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              ],
-            ),
-            _buildHealthScore(),
-          ],
+              ),
+              const SizedBox(width: 15),
+              _buildHealthScore(isWide: isWide),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildHealthScore() {
+  Widget _buildHealthScore({bool isWide = false}) {
     bool isGood = _seancesRestantes == 0;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 24 : 16,
+        vertical: isWide ? 12 : 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
+        border: Border.all(
+          color: (isGood ? Colors.green : Colors.orange).withOpacity(0.1),
+          width: 2,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.shield_rounded,
+            isGood ? Icons.check_circle_rounded : Icons.info_rounded,
             color: isGood ? Colors.green : Colors.orange,
-            size: 24,
+            size: isWide ? 32 : 24,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 "SANTÉ SYSTÈME",
                 style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
+                  fontSize: isWide ? 11 : 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey[600],
+                  letterSpacing: 1.1,
                 ),
               ),
               Text(
-                isGood ? "OPTIMAL" : "ATTENTION",
+                isGood ? "TOUT EST OPTIMAL" : "ACTIONS REQUISES",
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isGood ? Colors.green : Colors.orange,
+                  fontSize: isWide ? 14 : 12,
+                  fontWeight: FontWeight.w900,
+                  color: isGood ? Colors.green[700] : Colors.orange[800],
                 ),
               ),
             ],
@@ -931,15 +998,20 @@ class _DashboardState extends ConsumerState<Dashboard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         int crossAxisCount;
+        double childAspectRatio;
 
         if (constraints.maxWidth > 1200) {
           crossAxisCount = 5;
+          childAspectRatio = 2.2; // Plus d'espace vertical
         } else if (constraints.maxWidth > 900) {
           crossAxisCount = 4;
+          childAspectRatio = 1.8;
         } else if (constraints.maxWidth > 600) {
           crossAxisCount = 3;
+          childAspectRatio = 1.5;
         } else {
           crossAxisCount = 2;
+          childAspectRatio = 1.1; // Presque carré pour mobile
         }
 
         return GridView.count(
@@ -948,7 +1020,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1,
+          childAspectRatio: childAspectRatio,
           children: [
             _kpiCard(
               "Séance(s) Prévue(s)",
@@ -987,66 +1059,138 @@ class _DashboardState extends ConsumerState<Dashboard> {
   }
 
   Widget _kpiCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWide = constraints.maxWidth > 220;
+
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 16 : 8,
+            vertical: 10,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF1E293B),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+          child: isWide
+              ? Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Icon(icon, color: color, size: 40),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title.toUpperCase(),
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Flexible(
+                            flex: 3,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                value,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color, size: 24),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Flexible(
+                      flex: 2,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1E293B),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Flexible(
+                      child: Text(
+                        title.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
   Widget _buildLeftColumn() {
-    return Column(
-      children: [
-        _buildAcademicStats(),
-        const SizedBox(height: 28),
-        _buildPerformanceSurveillants(),
-      ],
-    );
+    return Column(children: [_buildAcademicStats()]);
+  }
+
+  final ScrollController _academicScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _academicScrollController.dispose();
+    super.dispose();
   }
 
   Widget _buildAcademicStats() {
@@ -1057,20 +1201,28 @@ class _DashboardState extends ConsumerState<Dashboard> {
         padding: const EdgeInsets.only(top: 30),
         child: _absencesParClasse.isEmpty
             ? const Center(child: Text("Aucune donnée disponible"))
-            : SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  // Largeur dynamique : 100px par classe, minimum 600px
-                  width: (_absencesParClasse.length * 100.0).clamp(
-                    600.0,
-                    double.infinity,
-                  ),
-                  padding: const EdgeInsets.only(
-                    right: 20,
-                    left: 10,
-                    bottom: 10,
-                  ),
-                  child: BarChart(
+            : Scrollbar(
+                controller: _academicScrollController,
+                thumbVisibility: true, // Toujours visible sur toutes les plateformes
+                trackVisibility: false,
+                thickness: 8,
+                radius: const Radius.circular(10),
+                child: SingleChildScrollView(
+                  controller: _academicScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 15), // Espace pour la barre
+                  child: Container(
+                    // Largeur dynamique : 100px par classe, minimum 600px
+                    width: (_absencesParClasse.length * 100.0).clamp(
+                      600.0,
+                      double.infinity,
+                    ),
+                    padding: const EdgeInsets.only(
+                      right: 20,
+                      left: 10,
+                      bottom: 10,
+                    ),
+                    child: BarChart(
                     BarChartData(
                       maxY: _maxAbsences,
                       barTouchData: BarTouchData(
@@ -1147,7 +1299,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) => FlLine(
-                          color: Colors.grey.withValues(alpha: 0.1),
+                          color: Colors.grey.withOpacity(0.1),
                           strokeWidth: 1,
                           dashArray: [5, 5],
                         ),
@@ -1172,7 +1324,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                               backDrawRodData: BackgroundBarChartRodData(
                                 show: true,
                                 toY: _maxAbsences,
-                                color: Colors.grey.withValues(alpha: 0.05),
+                                color: Colors.grey.withOpacity(0.05),
                               ),
                             ),
                           ],
@@ -1185,6 +1337,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                   ),
                 ),
               ),
+      ),
       ),
     );
   }
@@ -1216,10 +1369,10 @@ class _DashboardState extends ConsumerState<Dashboard> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.05),
+                        color: Colors.red.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.1),
+                          color: Colors.red.withOpacity(0.1),
                         ),
                       ),
                       child: Row(
@@ -1250,53 +1403,118 @@ class _DashboardState extends ConsumerState<Dashboard> {
   Widget _buildPerformanceSurveillants() {
     return _cardWrapper(
       title: "Performance des Surveillants",
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 20,
-          columns: const [
-            DataColumn(label: Text("Agent")),
-            DataColumn(label: Text("Séances")),
-            DataColumn(label: Text("Taux")),
-          ],
-          rows: _performanceSurveillants
-              .map(
-                (p) => DataRow(
-                  cells: [
-                    DataCell(
-                      Text(
-                        p['name'],
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isLarge = constraints.maxWidth > 600;
+
+          return SizedBox(
+            width: double.infinity,
+            child: DataTable(
+              horizontalMargin: 0,
+              columnSpacing: isLarge ? 40 : 10,
+              headingRowHeight: 50,
+              dataRowMinHeight: 55,
+              dataRowMaxHeight: 70,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    "Agent",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "Séances",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+                DataColumn(
+                  label: Expanded(
+                    child: Text(
+                      "Taux de complétion",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
-                    DataCell(Text("${p['done']} / ${p['assigned']}")),
-                    DataCell(
-                      SizedBox(width: 100, child: _progressBar(p['rate'])),
-                    ),
-                  ],
+                  ),
                 ),
-              )
-              .toList(),
-        ),
+              ],
+              rows: _performanceSurveillants
+                  .map(
+                    (p) => DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            p['name'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              "${p['done']} / ${p['assigned']}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _progressBar(p['rate'], isLarge: isLarge),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _progressBar(int value) {
+  Widget _progressBar(int value, {bool isLarge = false}) {
+    final Color color = value > 80
+        ? Colors.green
+        : (value > 40 ? Colors.orange : Colors.red);
+
     return Row(
+      mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(
-          child: LinearProgressIndicator(
-            value: value / 100,
-            backgroundColor: Colors.grey[200],
-            color: value > 80 ? Colors.green : Colors.orange,
-            minHeight: 6,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: value / 100,
+              backgroundColor: Colors.grey[200],
+              color: color,
+              minHeight: isLarge ? 12 : 8,
+            ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 15),
         Text(
           "$value%",
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: isLarge ? 14 : 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
@@ -1306,9 +1524,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
     // Obtenir la date du jour au format YYYY-MM-DD
     final String today = DateTime.now().toIso8601String().split('T')[0];
 
-    final response = await _supabase
-        .from('presence')
-        .select('''
+    final response = await _supabase.from('presence').select('''
         id_presence,
         date_presence,
         surveillant:surveillant(id_surveillant, nom, prenom),
@@ -1316,14 +1532,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
           date_seance,
           ecue:ecue(intitule_ecue)
         )
-      ''')
-        .eq('seance.date_seance', today)
-        .order(
-          'date_presence',
-          ascending: false,
-        ); // Tri décroissant (plus récent en haut)
+      ''').eq('seance.date_seance', today).order('date_presence', ascending: false);
 
-    return response;
+    return List<Map<String, dynamic>>.from(response);
   }
 
   Widget _buildPerformanceAndAudit() {
@@ -1353,29 +1564,44 @@ class _DashboardState extends ConsumerState<Dashboard> {
               final DateTime datePresence = DateTime.parse(
                 log['date_presence'],
               ).toLocal();
-              final surveillant = log['surveillant'];
-              final seance = log['seance'];
-              final ecue = seance['ecue'];
 
-              final DateTime dateSeance = DateTime.parse(seance['date_seance']);
+              // Extraction sécurisée des relations (peuvent être des listes via Supabase)
+              dynamic survData = log['surveillant'];
+              if (survData is List && survData.isNotEmpty) survData = survData[0];
+              final surveillant = survData as Map<String, dynamic>?;
+
+              dynamic seanceData = log['seance'];
+              if (seanceData is List && seanceData.isNotEmpty) {
+                seanceData = seanceData[0];
+              }
+              final seance = seanceData as Map<String, dynamic>?;
+
+              if (surveillant == null || seance == null) return const SizedBox();
+
+              dynamic ecueData = seance['ecue'];
+              if (ecueData is List && ecueData.isNotEmpty) {
+                ecueData = ecueData[0];
+              }
+              final ecue = ecueData as Map<String, dynamic>?;
+
+              final DateTime dateSeance = DateTime.parse(
+                seance['date_seance'] ?? DateTime.now().toIso8601String(),
+              );
 
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.history_edu, color: Colors.grey),
-
                 title: Text(
-                  "Enregistrement de présence par ${surveillant['prenom']} ${surveillant['nom']}",
+                  "Enregistrement de présence par ${surveillant['prenom'] ?? ''} ${surveillant['nom'] ?? ''}",
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 subtitle: Text(
-                  "${ecue['intitule_ecue']} • Séance du ${DateFormat('dd/MM/yyyy').format(dateSeance)}",
+                  "${ecue?['intitule_ecue'] ?? 'Cours inconnu'} • Séance du ${DateFormat('dd/MM/yyyy').format(dateSeance)}",
                   style: const TextStyle(fontSize: 11),
                 ),
-
                 trailing: Text(
                   DateFormat('HH:mm').format(datePresence),
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -1439,9 +1665,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color.withValues(alpha: 0.1)),
+          border: Border.all(color: color.withOpacity(0.1)),
         ),
         child: Column(
           children: [
@@ -1475,7 +1701,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withOpacity(0.02),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1505,3 +1731,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
     );
   }
 }
+
+
+
+

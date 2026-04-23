@@ -223,7 +223,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset('assets/img/attendance.png', height: 120),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 35),
                   const Text(
                     'Connexion',
                     textAlign: TextAlign.center,
@@ -275,3 +275,5 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 }
+
+

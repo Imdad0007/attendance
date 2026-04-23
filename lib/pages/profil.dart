@@ -1,6 +1,6 @@
 import 'package:attendance/composants/button.dart';
 import 'package:attendance/providers/navigation_provider.dart';
-import 'package:attendance/pages/historique.dart';
+import 'package:attendance/pages/pages_historique/onglet_historique.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/composants/notification_ui.dart';
@@ -62,103 +62,109 @@ class _ProfilState extends ConsumerState<Profil> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 25),
-              padding: const EdgeInsets.only(bottom: 25),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
-                borderRadius: BorderRadius.circular(35),
-              ),
-              child: Column(
-                children: [
-                  Transform.translate(
-                    offset: const Offset(0, -35),
-                    child: const CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        size: 75,
-                        color: Color(0xFF003366),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 25),
+                  padding: const EdgeInsets.only(bottom: 25),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: Column(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(0, -35),
+                        child: const CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.person,
+                            size: 75,
+                            color: Color(0xFF003366),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  Text(
-                    user?.nomComplet ?? "Utilisateur",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    user?.role == 'admin' ? "Admin" : "Surveillant",
-                    style: TextStyle(
-                      color: Color(0xFF003366),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
+                      Text(
+                        user?.nomComplet ?? "Utilisateur",
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        user?.role == 'admin' ? "Admin" : "Surveillant",
+                        style: TextStyle(
+                          color: Color(0xFF003366),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
 
-                  const Text(
-                    "PIGIER-BENIN",
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 97, 97, 97),
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: InkWell(
-                      onTap: () => _editPhoneDialog(user?.telephone),
-                      child: Container(
-                        height: 55,
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.phone,
-                              color: Color(0xFF003366),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _formatPhone(user?.telephone),
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.edit,
-                              color: Colors.grey,
-                              size: 18,
-                            ),
-                          ],
+                      const Text(
+                        "PIGIER-BENIN",
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 97, 97, 97),
+                          fontSize: 16,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 25),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: InkWell(
+                          onTap: () => _editPhoneDialog(user?.telephone),
+                          child: Container(
+                            height: 55,
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone,
+                                  color: Color(0xFF003366),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _formatPhone(user?.telephone),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.edit,
+                                  color: Colors.grey,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 40),
+                _buildTile(
+                  Icons.lock_outline,
+                  "Modifier votre mot de passe",
+                  _editPasswordDialog,
+                ),
+                const SizedBox(height: 60),
+                _logoutButton(),
+              ],
             ),
-            const SizedBox(height: 40),
-            _buildTile(
-              Icons.lock_outline,
-              "Modifier votre mot de passe",
-              _editPasswordDialog,
-            ),
-            const SizedBox(height: 60),
-            _logoutButton(),
-          ],
+          ),
         ),
       ),
     );
@@ -297,3 +303,5 @@ class _ProfilState extends ConsumerState<Profil> {
     ),
   );
 }
+
+

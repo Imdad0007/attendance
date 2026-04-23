@@ -124,7 +124,7 @@ class _Presence extends ConsumerState<Presence> {
                     vertical: 10,
                   ),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
+                    constraints: const BoxConstraints(maxWidth: 600),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -490,3 +490,5 @@ class _Presence extends ConsumerState<Presence> {
     }
   }
 }
+
+
