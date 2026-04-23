@@ -487,5 +487,3 @@ class _DetailHistoriqueState extends State<DetailHistorique> {
     ),
   );
 }
-
-

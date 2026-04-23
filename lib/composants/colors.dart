@@ -59,5 +59,3 @@ class AppColors {
   // // Bleu (plus contrasté)
   // static const blue = Color(0xFF1565C0);    // Blue 800
 }
-
-

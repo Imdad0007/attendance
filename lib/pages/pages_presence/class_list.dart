@@ -552,7 +552,7 @@ class _ClassListState extends ConsumerState<ClassList> {
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: Container(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               child: Center(
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.9,
@@ -643,5 +643,3 @@ class _ClassListState extends ConsumerState<ClassList> {
     );
   }
 }
-
-

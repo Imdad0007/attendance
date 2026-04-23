@@ -22,7 +22,6 @@ class NativeDownloadService {
       // Pour iOS ou si le dossier Android Downloads n'est pas accessible
       // On utilise le comportement standard de partage qui permet de "Sauvegarder dans Fichiers"
       await Printing.sharePdf(bytes: bytes, filename: fileName);
-      
     } catch (e) {
       debugPrint("Erreur de téléchargement natif: $e");
       // En cas d'erreur, on bascule sur le partage standard

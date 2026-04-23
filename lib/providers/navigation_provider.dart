@@ -18,5 +18,3 @@ final navigationTabProvider = StateProvider<AppTab>((ref) {
 
 // 3. Provider pour l'état étendu ou réduit du NavigationRail (Desktop)
 final railExtendedProvider = StateProvider<bool>((ref) => true);
-
-

@@ -53,5 +53,3 @@ class DropdownField<T> extends StatelessWidget {
     );
   }
 }
-
-

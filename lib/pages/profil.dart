@@ -303,5 +303,3 @@ class _ProfilState extends ConsumerState<Profil> {
     ),
   );
 }
-
-

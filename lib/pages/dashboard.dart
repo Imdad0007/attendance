@@ -211,9 +211,32 @@ class _DashboardState extends ConsumerState<Dashboard> {
       final response = await _supabase
           .from('details_presence')
           .select('etudiant(classe(filiere(nom_filiere), niveau(libelle)))')
-          .eq('statut', 'absent');
+          .eq('statut', 'absent')
+          .order('libelle')
+          .order('nom_filiere');
 
       final List data = response as List;
+
+
+data.sort((a, b) {
+  final etuA = a['etudiant'];
+  final etuB = b['etudiant'];
+
+  final classeA = etuA['classe'];
+  final classeB = etuB['classe'];
+
+  final filiereA = classeA['filiere']?['nom_filiere'] ?? '';
+  final filiereB = classeB['filiere']?['nom_filiere'] ?? '';
+
+  final niveauA = classeA['niveau']?['libelle'] ?? '';
+  final niveauB = classeB['niveau']?['libelle'] ?? '';
+
+  final compareFiliere = filiereA.compareTo(filiereB);
+  if (compareFiliere != 0) return compareFiliere;
+
+  return niveauA.compareTo(niveauB);
+});
+
       final Map<String, int> counts = {};
 
       for (var item in data) {
@@ -275,9 +298,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   Future<void> _generateLevelReport(int levelId, String levelLabel) async {
     try {
-      AppNotification.info(
-  "Préparation du bilan pour $levelLabel...",
-);
+      AppNotification.info("Préparation du bilan pour $levelLabel...");
       final now = DateTime.now();
       final firstDay = DateTime(now.year, now.month, 1).toIso8601String();
 
@@ -714,8 +735,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
     );
   }
 
-
-// ... (dans la classe _DashboardState)
+  // ... (dans la classe _DashboardState)
 
   Future<void> _finalizePdf(pw.Document pdf, String baseName) async {
     final bytes = await pdf.save();
@@ -1203,14 +1223,17 @@ class _DashboardState extends ConsumerState<Dashboard> {
             ? const Center(child: Text("Aucune donnée disponible"))
             : Scrollbar(
                 controller: _academicScrollController,
-                thumbVisibility: true, // Toujours visible sur toutes les plateformes
+                thumbVisibility:
+                    true, // Toujours visible sur toutes les plateformes
                 trackVisibility: false,
                 thickness: 8,
                 radius: const Radius.circular(10),
                 child: SingleChildScrollView(
                   controller: _academicScrollController,
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 15), // Espace pour la barre
+                  padding: const EdgeInsets.only(
+                    bottom: 15,
+                  ), // Espace pour la barre
                   child: Container(
                     // Largeur dynamique : 100px par classe, minimum 600px
                     width: (_absencesParClasse.length * 100.0).clamp(
@@ -1223,121 +1246,121 @@ class _DashboardState extends ConsumerState<Dashboard> {
                       bottom: 10,
                     ),
                     child: BarChart(
-                    BarChartData(
-                      maxY: _maxAbsences,
-                      barTouchData: BarTouchData(
-                        enabled: true,
-                        touchTooltipData: BarTouchTooltipData(
-                          tooltipPadding: const EdgeInsets.all(4),
-                          getTooltipColor: (group) => Colors.blueGrey[800]!,
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            return BarTooltipItem(
-                              "${rod.toY.toInt()} absences",
-                              const TextStyle(
-                                color: Colors.yellow,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 60,
-                            getTitlesWidget: (value, meta) {
-                              int index = value.toInt();
-                              if (index < 0 ||
-                                  index >= _absencesParClasse.length) {
-                                return const SizedBox();
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 12.0),
-                                child: Transform.rotate(
-                                  angle: -0.5,
-                                  child: SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      _absencesParClasse[index]['label'],
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blueGrey,
-                                      ),
-                                    ),
-                                  ),
+                      BarChartData(
+                        maxY: _maxAbsences,
+                        barTouchData: BarTouchData(
+                          enabled: true,
+                          touchTooltipData: BarTouchTooltipData(
+                            tooltipPadding: const EdgeInsets.all(4),
+                            getTooltipColor: (group) => Colors.blueGrey[800]!,
+                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                              return BarTooltipItem(
+                                "${rod.toY.toInt()} absences",
+                                const TextStyle(
+                                  color: Colors.yellow,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               );
                             },
                           ),
                         ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 35,
-                            getTitlesWidget: (value, meta) => Text(
-                              value.toInt().toString(),
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
+                        titlesData: FlTitlesData(
+                          show: true,
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 60,
+                              getTitlesWidget: (value, meta) {
+                                int index = value.toInt();
+                                if (index < 0 ||
+                                    index >= _absencesParClasse.length) {
+                                  return const SizedBox();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: Transform.rotate(
+                                    angle: -0.5,
+                                    child: SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        _absencesParClasse[index]['label'],
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blueGrey,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 35,
+                              getTitlesWidget: (value, meta) => Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 10,
+                                ),
                               ),
                             ),
                           ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                         ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: Colors.grey.withOpacity(0.1),
+                            strokeWidth: 1,
+                            dashArray: [5, 5],
+                          ),
                         ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        getDrawingHorizontalLine: (value) => FlLine(
-                          color: Colors.grey.withOpacity(0.1),
-                          strokeWidth: 1,
-                          dashArray: [5, 5],
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      barGroups: _absencesParClasse.asMap().entries.map((
-                        entry,
-                      ) {
-                        final double val = (entry.value['value'] as int)
-                            .toDouble();
-                        return BarChartGroupData(
-                          x: entry.key,
-                          showingTooltipIndicators: [0],
-                          barRods: [
-                            BarChartRodData(
-                              toY: val,
-                              color: entry.value['color'],
-                              width: 30, // Largeur des barres
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(6),
+                        borderData: FlBorderData(show: false),
+                        barGroups: _absencesParClasse.asMap().entries.map((
+                          entry,
+                        ) {
+                          final double val = (entry.value['value'] as int)
+                              .toDouble();
+                          return BarChartGroupData(
+                            x: entry.key,
+                            showingTooltipIndicators: [0],
+                            barRods: [
+                              BarChartRodData(
+                                toY: val,
+                                color: entry.value['color'],
+                                width: 30, // Largeur des barres
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(6),
+                                ),
+                                backDrawRodData: BackgroundBarChartRodData(
+                                  show: true,
+                                  toY: _maxAbsences,
+                                  color: Colors.grey.withOpacity(0.05),
+                                ),
                               ),
-                              backDrawRodData: BackgroundBarChartRodData(
-                                show: true,
-                                toY: _maxAbsences,
-                                color: Colors.grey.withOpacity(0.05),
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                      groupsSpace: 40, // Espace entre les groupes
+                            ],
+                          );
+                        }).toList(),
+                        groupsSpace: 40, // Espace entre les groupes
+                      ),
+                      swapAnimationDuration: const Duration(milliseconds: 1000),
+                      swapAnimationCurve: Curves.elasticOut,
                     ),
-                    swapAnimationDuration: const Duration(milliseconds: 1000),
-                    swapAnimationCurve: Curves.elasticOut,
                   ),
                 ),
               ),
-      ),
       ),
     );
   }
@@ -1371,9 +1394,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.1),
-                        ),
+                        border: Border.all(color: Colors.red.withOpacity(0.1)),
                       ),
                       child: Row(
                         children: [
@@ -1524,7 +1545,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
     // Obtenir la date du jour au format YYYY-MM-DD
     final String today = DateTime.now().toIso8601String().split('T')[0];
 
-    final response = await _supabase.from('presence').select('''
+    final response = await _supabase
+        .from('presence')
+        .select('''
         id_presence,
         date_presence,
         surveillant:surveillant(id_surveillant, nom, prenom),
@@ -1532,7 +1555,9 @@ class _DashboardState extends ConsumerState<Dashboard> {
           date_seance,
           ecue:ecue(intitule_ecue)
         )
-      ''').eq('seance.date_seance', today).order('date_presence', ascending: false);
+      ''')
+        .eq('seance.date_seance', today)
+        .order('date_presence', ascending: false);
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -1567,7 +1592,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
               // Extraction sécurisée des relations (peuvent être des listes via Supabase)
               dynamic survData = log['surveillant'];
-              if (survData is List && survData.isNotEmpty) survData = survData[0];
+              if (survData is List && survData.isNotEmpty)
+                survData = survData[0];
               final surveillant = survData as Map<String, dynamic>?;
 
               dynamic seanceData = log['seance'];
@@ -1576,7 +1602,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
               }
               final seance = seanceData as Map<String, dynamic>?;
 
-              if (surveillant == null || seance == null) return const SizedBox();
+              if (surveillant == null || seance == null)
+                return const SizedBox();
 
               dynamic ecueData = seance['ecue'];
               if (ecueData is List && ecueData.isNotEmpty) {
@@ -1731,7 +1758,3 @@ class _DashboardState extends ConsumerState<Dashboard> {
     );
   }
 }
-
-
-
-

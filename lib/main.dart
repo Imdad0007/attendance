@@ -4,7 +4,6 @@ import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:attendance/pages/pages_historique/onglet_historique.dart';
-import 'package:attendance/composants/notification_ui.dart';
 import 'package:attendance/providers/inactivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -46,20 +45,19 @@ void main() async {
 Future<void> _loadAppSettings() async {
   try {
     final client = Supabase.instance.client;
-    final response = await client.from('app_settings').select('cle, valeur');
+    final response =
+        await client.from('app_settings').select('cle, valeur') as List;
 
-    if (response is List) {
-      final Map<String, String> configMap = {};
-      for (var item in response) {
-        if (item is Map && item.containsKey('cle')) {
-          configMap[item['cle'].toString()] = item['valeur']?.toString() ?? '';
-        }
+    final Map<String, String> configMap = {};
+    for (var item in response) {
+      if (item is Map && item.containsKey('cle')) {
+        configMap[item['cle'].toString()] = item['valeur']?.toString() ?? '';
       }
-      debugPrint(
-        "Configuration chargée depuis Supabase: ${configMap.keys.join(', ')}",
-      );
-      AppConfig.updateFromMap(configMap);
     }
+    debugPrint(
+      "Configuration chargée depuis Supabase: ${configMap.keys.join(', ')}",
+    );
+    AppConfig.updateFromMap(configMap);
   } catch (e) {
     debugPrint(
       "Info: app_settings non chargés (normal si première install): $e",
@@ -141,9 +139,12 @@ class _MyAppState extends ConsumerState<MyApp> {
         if (child == null) return const SizedBox();
 
         return Listener(
-          onPointerDown: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
-          onPointerMove: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
-          onPointerHover: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
+          onPointerDown: (_) =>
+              ref.read(inactivityProvider.notifier).resetTimer(),
+          onPointerMove: (_) =>
+              ref.read(inactivityProvider.notifier).resetTimer(),
+          onPointerHover: (_) =>
+              ref.read(inactivityProvider.notifier).resetTimer(),
           child: ResponsiveBreakpoints.builder(
             child: ResponsiveScaledBox(
               width: MediaQuery.of(context).size.width,

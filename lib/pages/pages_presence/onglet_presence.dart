@@ -393,7 +393,7 @@ class _Presence extends ConsumerState<Presence> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -490,5 +490,3 @@ class _Presence extends ConsumerState<Presence> {
     }
   }
 }
-
-

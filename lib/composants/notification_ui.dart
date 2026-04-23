@@ -6,7 +6,8 @@ enum NotificationType { success, error, info, warning }
 
 class AppNotification {
   // Utilisation d'une NavigatorKey pour un accès global fiable à l'Overlay
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   static OverlayEntry? _currentEntry;
 
@@ -31,8 +32,8 @@ class AppNotification {
     final finalMessage = kReleaseMode
         ? message
         : (debugMessage != null
-            ? "$message\n\n[DEBUG]: $debugMessage"
-            : message);
+              ? "$message\n\n[DEBUG]: $debugMessage"
+              : message);
 
     // Supprime l'ancienne notification proprement
     _currentEntry?.remove();
@@ -64,10 +65,10 @@ class AppNotification {
       show(message: msg, type: NotificationType.success);
 
   static void error(String msg, {dynamic error}) => show(
-        message: msg,
-        type: NotificationType.error,
-        debugMessage: error?.toString(),
-      );
+    message: msg,
+    type: NotificationType.error,
+    debugMessage: error?.toString(),
+  );
 
   static void info(String msg) =>
       show(message: msg, type: NotificationType.info);
@@ -107,10 +108,7 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
     _controller.forward();
   }

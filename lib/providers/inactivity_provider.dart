@@ -38,7 +38,7 @@ class InactivityNotifier extends StateNotifier<void> {
     ref.invalidate(userProvider);
     ref.invalidate(navigationTabProvider);
     ref.invalidate(historiqueProvider);
-    
+
     // Le routeur s'occupera de rediriger vers /login grâce au refreshListenable
   }
 
@@ -49,6 +49,8 @@ class InactivityNotifier extends StateNotifier<void> {
   }
 }
 
-final inactivityProvider = StateNotifierProvider<InactivityNotifier, void>((ref) {
+final inactivityProvider = StateNotifierProvider<InactivityNotifier, void>((
+  ref,
+) {
   return InactivityNotifier(ref);
 });

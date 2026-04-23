@@ -77,5 +77,3 @@ class Seance extends StatelessWidget {
     );
   }
 }
-
-

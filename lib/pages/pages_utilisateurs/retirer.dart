@@ -119,7 +119,7 @@ class _RetirerState extends State<Retirer> {
                               Icon(
                                 Icons.person_off_outlined,
                                 size: 80,
-                                color: AppColors.grey.withOpacity(0.3),
+                                color: AppColors.grey.withValues(alpha: 0.3),
                               ),
                               const SizedBox(height: 16),
                               const Text(
@@ -169,5 +169,3 @@ class _RetirerState extends State<Retirer> {
     );
   }
 }
-
-

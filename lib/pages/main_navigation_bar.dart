@@ -337,5 +337,3 @@ class MainNavigationBar extends ConsumerWidget {
     }
   }
 }
-
-
