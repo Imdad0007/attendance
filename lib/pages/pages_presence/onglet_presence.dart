@@ -23,20 +23,53 @@ class _Presence extends ConsumerState<Presence> {
 
   bool isLoading = true;
   int? _loadingSeanceId;
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _subscribeToSeances();
+  }
+
+  @override
+  void dispose() {
+    _channel?.unsubscribe();
+    super.dispose();
+  }
+
+  void _subscribeToSeances() {
+    final user = ref.read(userProvider);
+    if (user == null || user.idSurveillant == null) return;
+
+    // Écoute les changements sur la table seance en temps réel
+    _channel = _supabase
+        .channel('public:seance')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'seance',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_surveillant',
+            value: user.idSurveillant,
+          ),
+          callback: (payload) {
+            debugPrint('Changement détecté dans les séances : ${payload.toString()}');
+            _loadData(); // Recharger toutes les données pour avoir les jointures
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _loadData() async {
-    setState(() => isLoading = true);
+    if (!mounted) return;
+    setState(() => isLoading = seances.isEmpty); // Ne montrer le loader que si la liste est vide
 
     try {
       await Future.wait([_fetchPresences(), _fetchSeances()]);
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -181,13 +214,27 @@ class _Presence extends ConsumerState<Presence> {
                             ),
                           )
                         else
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: seances.length,
-                            itemBuilder: (context, index) {
-                              final s = seances[index];
-                              return _buildCard(s);
+                          Builder(
+                            builder: (context) {
+                              // Tri des séances : les "faites" en bas
+                              final sortedSeances = List<Map<String, dynamic>>.from(seances);
+                              sortedSeances.sort((a, b) {
+                                final aDone = _isDone(a['id_seance']);
+                                final bDone = _isDone(b['id_seance']);
+                                if (aDone && !bDone) return 1;
+                                if (!aDone && bDone) return -1;
+                                return 0;
+                              });
+
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: sortedSeances.length,
+                                itemBuilder: (context, index) {
+                                  final s = sortedSeances[index];
+                                  return _buildCard(s);
+                                },
+                              );
                             },
                           ),
                       ],

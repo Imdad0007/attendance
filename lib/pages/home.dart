@@ -26,7 +26,7 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
-    final isAdmin = ref.watch(isAdminProvider);
+    // final isAdmin = ref.watch(isAdminProvider);
 
     final String nomSurveillant =
         user?.nomComplet ?? 'Utilisateur non connecté';
@@ -91,18 +91,14 @@ class HomePage extends ConsumerWidget {
                       child: Row(
                         children: [
                           Icon(
-                            isAdmin
-                                ? Icons.event_note
-                                : Icons.play_circle_outline,
+                            Icons.play_circle_outline,
                             color: AppColors.white,
                             size: 38,
                           ),
                           SizedBox(width: 18),
                           Expanded(
                             child: Text(
-                              isAdmin
-                                  ? "Programmer une séance"
-                                  : "Démarrer l’appel",
+                              "Faie la présence",
                               style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 20,

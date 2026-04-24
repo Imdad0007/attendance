@@ -66,6 +66,8 @@ class _ClassListState extends ConsumerState<ClassList> {
   }
 
   Future<void> _handleSave() async {
+    if (_isSaving) return; // Empêche les clics multiples
+
     if (_signatureController.isEmpty) {
       AppNotification.warning(
         "La signature du professeur est requise pour valider",
@@ -84,6 +86,19 @@ class _ClassListState extends ConsumerState<ClassList> {
       }
 
       final signatureBytes = await _signatureController.toPngBytes();
+
+      // Vérifier si la présence existe déjà pour cette séance (idempotence)
+      final existing = await supabase
+          .from('presence')
+          .select('id_presence')
+          .eq('id_seance', widget.idSeance)
+          .maybeSingle();
+
+      if (existing != null) {
+        AppNotification.warning("La présence pour cette séance a déjà été enregistrée.");
+        _redirectToSuccess(0);
+        return;
+      }
 
       final presenceResponse = await supabase
           .from('presence')
@@ -123,12 +138,7 @@ class _ClassListState extends ConsumerState<ClassList> {
           .where((s) => s['isAbsent'] && s['parentPhoneNumber'] != 'N/A')
           .toList();
 
-      debugPrint(
-        "DEBUG: Nombre d'absents détectés avec numéro : ${absentStudents.length}",
-      );
-
       final tasks = absentStudents.map((s) {
-        // debugPrint("DEBUG: Tentative d'envoi pour ${s['nom']} au ${s['parentPhoneNumber']}");
         return WhatsAppService.sendAbsenceTemplate(
           phone: s['parentPhoneNumber'],
           studentName: '${s['nom']} ${s['prenom']}',
@@ -142,20 +152,31 @@ class _ClassListState extends ConsumerState<ClassList> {
       final failed = results.where((e) => e == false).length;
 
       if (!mounted) return;
+      _redirectToSuccess(failed);
 
-      if (useMainLayoutRail(context)) {
-        ref.read(adaptiveNavigationProvider.notifier).state =
-            AdaptiveNavigationState(
-              page: AdaptivePage.successRegistration,
-              extra: failed,
-            );
-      } else {
-        context.go('/success', extra: failed);
-      }
     } catch (e) {
       AppNotification.error("Erreur lors de l'enregistrement", error: e);
-    } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _redirectToSuccess(int failed) {
+    if (!mounted) return;
+    
+    // Fermer les dialogues avant la redirection
+    setState(() {
+      showConfirmDialog = false;
+      showSignatureDialog = false;
+    });
+
+    if (useMainLayoutRail(context)) {
+      ref.read(adaptiveNavigationProvider.notifier).state =
+          AdaptiveNavigationState(
+            page: AdaptivePage.successRegistration,
+            extra: failed,
+          );
+    } else {
+      context.go('/success', extra: failed);
     }
   }
 
@@ -417,108 +438,72 @@ class _ClassListState extends ConsumerState<ClassList> {
   // --- WIDGET DU DIALOGUE POUR LA CONFIRMATION  ---
 
   Widget _confirm() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: SizedBox.expand(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(
-              sigmaX: 8,
-              sigmaY: 8,
-            ), // L'effet de flou
-            child: Container(
-              color: AppColors.black.withAlpha(51), // Teinte sombre légère
-              child: Center(
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.85,
-                  height: MediaQuery.of(context).size.height * 0.8,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withAlpha(
-                      76,
-                    ), // Fond semi-transparent
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.white.withAlpha(51)),
-                  ),
-                  child: Column(
-                    children: [
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: GestureDetector(
-                          onTap: toggleDialog,
-                          child: const Icon(
-                            Icons.cancel_outlined,
-                            color: AppColors.black,
-                            size: 35,
-                          ),
-                        ),
+    return SizedBox.expand(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          color: AppColors.black.withAlpha(51), 
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.85,
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withAlpha(76),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: AppColors.white.withAlpha(51)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
+                        onPressed: toggleDialog,
+                        icon: const Icon(Icons.cancel_outlined, size: 30),
                       ),
-
-                      if (!students.any(
-                        (student) => student['isAbsent'] == true,
-                      ))
-                        const Center(
-                          child: Text(
-                            "AUCUNE ABSENCE",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        )
-                      else
-                        const Center(
-                          child: Text(
-                            "LES ABSENTS :",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-
-                      Expanded(
-                        child: ListView(
-                          children: students
-                              .where((s) => s['isAbsent'])
-                              .map(
-                                (s) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
+                    ),
+                    Text(
+                      !students.any((s) => s['isAbsent'] == true)
+                          ? "AUCUNE ABSENCE"
+                          : "LES ABSENTS :",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: students
+                            .where((s) => s['isAbsent'])
+                            .map((s) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
                                   child: Text(
                                     "- ${s['nom']}  ${s['prenom']}",
-                                    style: const TextStyle(
-                                      color: AppColors.black,
-                                      fontSize: 18,
-                                    ),
+                                    style: const TextStyle(fontSize: 17),
                                   ),
-                                ),
-                              )
-                              .toList(),
-                        ),
+                                ))
+                            .toList(),
                       ),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _dialogButton("Confirmer", Icons.check, () {
-                            // ACTION CONFIRMER
-                            setState(() {
-                              showConfirmDialog = false;
-                              showSignatureDialog = true;
-                            }); // Appelle le dialogue de signature
-                          }),
-                          _dialogButton("Annuler", Icons.cancel, () {
-                            toggleDialog(); // ACTION ANNULER
-                          }),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _dialogButton("Confirmer", Icons.check, () {
+                          setState(() {
+                            showConfirmDialog = false;
+                            showSignatureDialog = true;
+                          });
+                        }),
+                        _dialogButton("Annuler", Icons.cancel, toggleDialog),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -558,91 +543,78 @@ class _ClassListState extends ConsumerState<ClassList> {
   }
 
   Widget _signatureDialog() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: SizedBox.expand(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.4),
-              child: Center(
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  height: MediaQuery.of(context).size.height * 0.85,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
+    return SizedBox.expand(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          color: AppColors.black.withAlpha(51), 
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Signature du Professeur",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          const Expanded(
+                            child: Text(
+                              "Signature du Professeur",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           IconButton(
-                            onPressed: () {
-                              setState(() {
-                                showSignatureDialog = false;
-                              });
-                            },
+                            onPressed: () => setState(() => showSignatureDialog = false),
                             icon: const Icon(Icons.close, size: 30),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
                       const Text(
                         "Émargement numérique requis pour valider la séance",
                         style: TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 20),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Signature(
-                              controller: _signatureController,
-                              backgroundColor: Colors.grey.shade50,
-                            ),
+                      Container(
+                        height: 250,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Signature(
+                            controller: _signatureController,
+                            backgroundColor: Colors.grey.shade50,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () => _signatureController.clear(),
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                            ),
-                            label: const Text(
-                              "Effacer",
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => _signatureController.clear(),
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          label: const Text("Effacer", style: TextStyle(color: Colors.red)),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: Button(
-                          label: _isSaving
-                              ? "Enregistrement..."
-                              : "ENREGISTRER",
+                          label: _isSaving ? "Enregistrement..." : "ENREGISTRER",
                           onPressed: _isSaving ? null : _handleSave,
                         ),
                       ),

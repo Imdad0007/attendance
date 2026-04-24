@@ -1040,31 +1040,31 @@ class _DashboardState extends ConsumerState<Dashboard> {
           childAspectRatio: childAspectRatio,
           children: [
             _kpiCard(
-              "Séance(s) Prévue(s)",
+              "Séances Prévues",
               _totalSeances.toString(),
               Icons.calendar_today,
               Colors.blue,
             ),
             _kpiCard(
-              "Séance(s) Validée(s)",
+              "Séances Validées",
               _seancesFaites.toString(),
               Icons.verified_user,
               Colors.green,
             ),
             _kpiCard(
-              "Séance(s) En Attente",
+              "Séances En Attente",
               _seancesRestantes.toString(),
               Icons.hourglass_empty,
               Colors.orange,
             ),
             _kpiCard(
-              "Absence(s)",
+              "Absences",
               _totalAbsences.toString(),
               Icons.person_off,
               Colors.red,
             ),
             _kpiCard(
-              "Surveillant(s) Actifs",
+              "Surveillants Actifs",
               _surveillantsActifs.toString(),
               Icons.engineering,
               Colors.purple,

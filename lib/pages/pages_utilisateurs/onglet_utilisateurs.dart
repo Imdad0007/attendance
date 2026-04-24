@@ -21,95 +21,101 @@ class Utilisateur extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final verticalSpacing = constraints.maxHeight * 0.03;
-            return Center(
+            return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          'Gerer les utilisateurs',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.black,
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              'Gerer les utilisateurs',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.black,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: verticalSpacing * 2),
-                    Carte(
-                      label: "Creer un compte",
-                      icon: Icons.person_add,
-                      color: const Color(0xFF2E7D32),
-                      onTap: () {
-                        if (useAdaptiveNavigation) {
-                          ref
-                              .read(adaptiveNavigationProvider.notifier)
-                              .state = const AdaptiveNavigationState(
-                            page: AdaptivePage.creerUtilisateur,
-                          );
-                          return;
-                        }
+                        SizedBox(height: verticalSpacing * 2),
+                        Carte(
+                          label: "Creer un compte",
+                          icon: Icons.person_add,
+                          color: const Color(0xFF2E7D32),
+                          onTap: () {
+                            if (useAdaptiveNavigation) {
+                              ref
+                                  .read(adaptiveNavigationProvider.notifier)
+                                  .state = const AdaptiveNavigationState(
+                                page: AdaptivePage.creerUtilisateur,
+                              );
+                              return;
+                            }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Creer(),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: verticalSpacing),
-                    Carte(
-                      label: "Lister les surveillants",
-                      icon: Icons.list,
-                      color: const Color(0xFF1565C0),
-                      onTap: () {
-                        if (useAdaptiveNavigation) {
-                          ref
-                              .read(adaptiveNavigationProvider.notifier)
-                              .state = const AdaptiveNavigationState(
-                            page: AdaptivePage.listerUtilisateurs,
-                          );
-                          return;
-                        }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Creer(),
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: verticalSpacing),
+                        Carte(
+                          label: "Lister les surveillants",
+                          icon: Icons.list,
+                          color: const Color(0xFF1565C0),
+                          onTap: () {
+                            if (useAdaptiveNavigation) {
+                              ref
+                                  .read(adaptiveNavigationProvider.notifier)
+                                  .state = const AdaptiveNavigationState(
+                                page: AdaptivePage.listerUtilisateurs,
+                              );
+                              return;
+                            }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Lister(),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: verticalSpacing),
-                    Carte(
-                      label: "Retirer un compte",
-                      icon: Icons.delete,
-                      color: const Color(0xFFC62828),
-                      onTap: () {
-                        if (useAdaptiveNavigation) {
-                          ref
-                              .read(adaptiveNavigationProvider.notifier)
-                              .state = const AdaptiveNavigationState(
-                            page: AdaptivePage.retirerUtilisateur,
-                          );
-                          return;
-                        }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Lister(),
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: verticalSpacing),
+                        Carte(
+                          label: "Retirer un compte",
+                          icon: Icons.delete,
+                          color: const Color(0xFFC62828),
+                          onTap: () {
+                            if (useAdaptiveNavigation) {
+                              ref
+                                  .read(adaptiveNavigationProvider.notifier)
+                                  .state = const AdaptiveNavigationState(
+                                page: AdaptivePage.retirerUtilisateur,
+                              );
+                              return;
+                            }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Retirer(),
-                          ),
-                        );
-                      },
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Retirer(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );

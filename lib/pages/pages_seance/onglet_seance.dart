@@ -20,74 +20,80 @@ class Seance extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final verticalSpacing = constraints.maxHeight * 0.03;
-            return Center(
+            return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          'Programmer les seances',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.black,
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              'Programmer les seances',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.black,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: verticalSpacing * 2),
-                    Carte(
-                      label: "Creer une seance",
-                      icon: Icons.person_add,
-                      color: const Color(0xFF2E7D32),
-                      onTap: () {
-                        if (useAdaptiveNavigation) {
-                          ref
-                              .read(adaptiveNavigationProvider.notifier)
-                              .state = const AdaptiveNavigationState(
-                            page: AdaptivePage.creerSeance,
-                            extra: {'mode': 'create'},
-                          );
-                          return;
-                        }
+                        SizedBox(height: verticalSpacing * 2),
+                        Carte(
+                          label: "Creer une seance",
+                          icon: Icons.person_add,
+                          color: const Color(0xFF2E7D32),
+                          onTap: () {
+                            if (useAdaptiveNavigation) {
+                              ref
+                                  .read(adaptiveNavigationProvider.notifier)
+                                  .state = const AdaptiveNavigationState(
+                                page: AdaptivePage.creerSeance,
+                                extra: {'mode': 'create'},
+                              );
+                              return;
+                            }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const CreerSeance(mode: 'create'),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: verticalSpacing * 2),
-                    Carte(
-                      label: "Suivre les seances",
-                      icon: Icons.list,
-                      color: const Color(0xFF1565C0),
-                      onTap: () {
-                        if (useAdaptiveNavigation) {
-                          ref
-                              .read(adaptiveNavigationProvider.notifier)
-                              .state = const AdaptiveNavigationState(
-                            page: AdaptivePage.suivreSeance,
-                          );
-                          return;
-                        }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CreerSeance(mode: 'create'),
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: verticalSpacing * 2),
+                        Carte(
+                          label: "Suivre les seances",
+                          icon: Icons.list,
+                          color: const Color(0xFF1565C0),
+                          onTap: () {
+                            if (useAdaptiveNavigation) {
+                              ref
+                                  .read(adaptiveNavigationProvider.notifier)
+                                  .state = const AdaptiveNavigationState(
+                                page: AdaptivePage.suivreSeance,
+                              );
+                              return;
+                            }
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SuivreSeance(),
-                          ),
-                        );
-                      },
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SuivreSeance(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
