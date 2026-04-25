@@ -41,7 +41,10 @@ class SuccessRegistration extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 700),
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 40.0,
+                vertical: 20,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -70,9 +73,9 @@ class SuccessRegistration extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    // failedNotifications == 0
-                        /*? */"La présence a été enregistrée avec succès. Toutes les notifications ont été envoyées.",
-                        // : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
+                    failedNotifications == 0
+                        ? "La présence a été enregistrée avec succès. Toutes les notifications ont été envoyées."
+                        : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,
@@ -81,10 +84,7 @@ class SuccessRegistration extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 60),
-                  Button(
-                    label: "TERMINER",
-                    onPressed: closeSuccess,
-                  ),
+                  Button(label: "TERMINER", onPressed: closeSuccess),
                 ],
               ),
             ),

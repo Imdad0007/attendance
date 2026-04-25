@@ -140,14 +140,43 @@ class _SuivreSeanceState extends ConsumerState<SuivreSeance> {
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _loadData,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: seances.length,
-                    itemBuilder: (context, index) {
-                      final s = seances[index];
-                      return _buildCard(s);
-                    },
-                  ),
+                  child: seances.isEmpty
+                      ? ListView(
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.3,
+                            ),
+                            const Center(
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.event_busy_outlined,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 20),
+                                  Text(
+                                    "Aucune séance programmée pour aujourd'hui.",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: seances.length,
+                          itemBuilder: (context, index) {
+                            final s = seances[index];
+                            return _buildCard(s);
+                          },
+                        ),
                 ),
         ),
       ),

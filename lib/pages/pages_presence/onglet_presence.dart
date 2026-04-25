@@ -55,7 +55,9 @@ class _Presence extends ConsumerState<Presence> {
             value: user.idSurveillant,
           ),
           callback: (payload) {
-            debugPrint('Changement détecté dans les séances : ${payload.toString()}');
+            debugPrint(
+              'Changement détecté dans les séances : ${payload.toString()}',
+            );
             _loadData(); // Recharger toutes les données pour avoir les jointures
           },
         )
@@ -64,7 +66,9 @@ class _Presence extends ConsumerState<Presence> {
 
   Future<void> _loadData() async {
     if (!mounted) return;
-    setState(() => isLoading = seances.isEmpty); // Ne montrer le loader que si la liste est vide
+    setState(
+      () => isLoading = seances.isEmpty,
+    ); // Ne montrer le loader que si la liste est vide
 
     try {
       await Future.wait([_fetchPresences(), _fetchSeances()]);
@@ -217,7 +221,8 @@ class _Presence extends ConsumerState<Presence> {
                           Builder(
                             builder: (context) {
                               // Tri des séances : les "faites" en bas
-                              final sortedSeances = List<Map<String, dynamic>>.from(seances);
+                              final sortedSeances =
+                                  List<Map<String, dynamic>>.from(seances);
                               sortedSeances.sort((a, b) {
                                 final aDone = _isDone(a['id_seance']);
                                 final bDone = _isDone(b['id_seance']);

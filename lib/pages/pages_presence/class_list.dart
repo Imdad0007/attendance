@@ -47,6 +47,8 @@ class _ClassListState extends ConsumerState<ClassList> {
     penColor: Colors.black,
   );
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +64,7 @@ class _ClassListState extends ConsumerState<ClassList> {
   @override
   void dispose() {
     _signatureController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -95,7 +98,9 @@ class _ClassListState extends ConsumerState<ClassList> {
           .maybeSingle();
 
       if (existing != null) {
-        AppNotification.warning("La présence pour cette séance a déjà été enregistrée.");
+        AppNotification.warning(
+          "La présence pour cette séance a déjà été enregistrée.",
+        );
         _redirectToSuccess(0);
         return;
       }
@@ -153,7 +158,6 @@ class _ClassListState extends ConsumerState<ClassList> {
 
       if (!mounted) return;
       _redirectToSuccess(failed);
-
     } catch (e) {
       AppNotification.error("Erreur lors de l'enregistrement", error: e);
       if (mounted) setState(() => _isSaving = false);
@@ -162,7 +166,7 @@ class _ClassListState extends ConsumerState<ClassList> {
 
   void _redirectToSuccess(int failed) {
     if (!mounted) return;
-    
+
     // Fermer les dialogues avant la redirection
     setState(() {
       showConfirmDialog = false;
@@ -170,11 +174,12 @@ class _ClassListState extends ConsumerState<ClassList> {
     });
 
     if (useMainLayoutRail(context)) {
-      ref.read(adaptiveNavigationProvider.notifier).state =
-          AdaptiveNavigationState(
-            page: AdaptivePage.successRegistration,
-            extra: failed,
-          );
+      ref
+          .read(adaptiveNavigationProvider.notifier)
+          .state = AdaptiveNavigationState(
+        page: AdaptivePage.successRegistration,
+        extra: failed,
+      );
     } else {
       context.go('/success', extra: failed);
     }
@@ -442,7 +447,7 @@ class _ClassListState extends ConsumerState<ClassList> {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          color: AppColors.black.withAlpha(51), 
+          color: AppColors.black.withAlpha(51),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
@@ -476,21 +481,41 @@ class _ClassListState extends ConsumerState<ClassList> {
                     ),
                     const SizedBox(height: 15),
                     Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: students
-                            .where((s) => s['isAbsent'])
-                            .map((s) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Text(
-                                    "- ${s['nom']}  ${s['prenom']}",
-                                    style: const TextStyle(fontSize: 17),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          scrollbarTheme: ScrollbarThemeData(
+                            thumbColor: WidgetStateProperty.all(Colors.black),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          child: ListView(
+                            controller: _scrollController,
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.only(right: 15),
+                            children: students
+                                .where((s) => s['isAbsent'])
+                                .map(
+                                  (s) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Text(
+                                      "- ${s['nom']}  ${s['prenom']}",
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        color: Colors.black,
+                                      ),
+                                    ),
                                   ),
-                                ))
-                            .toList(),
+                                )
+                                .toList(),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -547,7 +572,7 @@ class _ClassListState extends ConsumerState<ClassList> {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          color: AppColors.black.withAlpha(51), 
+          color: AppColors.black.withAlpha(51),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
@@ -576,7 +601,8 @@ class _ClassListState extends ConsumerState<ClassList> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () => setState(() => showSignatureDialog = false),
+                            onPressed: () =>
+                                setState(() => showSignatureDialog = false),
                             icon: const Icon(Icons.close, size: 30),
                           ),
                         ],
@@ -606,15 +632,23 @@ class _ClassListState extends ConsumerState<ClassList> {
                         alignment: Alignment.centerRight,
                         child: TextButton.icon(
                           onPressed: () => _signatureController.clear(),
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          label: const Text("Effacer", style: TextStyle(color: Colors.red)),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          label: const Text(
+                            "Effacer",
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: Button(
-                          label: _isSaving ? "Enregistrement..." : "ENREGISTRER",
+                          label: _isSaving
+                              ? "Enregistrement..."
+                              : "ENREGISTRER",
                           onPressed: _isSaving ? null : _handleSave,
                         ),
                       ),

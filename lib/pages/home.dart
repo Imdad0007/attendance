@@ -98,7 +98,7 @@ class HomePage extends ConsumerWidget {
                           SizedBox(width: 18),
                           Expanded(
                             child: Text(
-                              "Faie la présence",
+                              "Faire la présence",
                               style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 20,

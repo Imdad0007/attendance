@@ -60,6 +60,14 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
             final etudiant = e['etudiant'] as Map<String, dynamic>;
             return {'nom': etudiant['nom'], 'prenom': etudiant['prenom']};
           }).toList();
+
+          // Tri par nom puis par prénom
+          absents.sort((a, b) {
+            int cmp = (a['nom'] ?? '').compareTo(b['nom'] ?? '');
+            if (cmp != 0) return cmp;
+            return (a['prenom'] ?? '').compareTo(b['prenom'] ?? '');
+          });
+
           isLoading = false;
         });
       }

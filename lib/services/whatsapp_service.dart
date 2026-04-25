@@ -79,8 +79,12 @@ class WhatsAppService {
           },
         }),
       );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        print("Erreur Meta API (${response.statusCode}): ${response.body}");
+      }
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
+      print("Exception Meta API: $e");
       return false;
     }
   }
@@ -123,8 +127,12 @@ class WhatsAppService {
           "message": message,
         }),
       );
+      if (response.statusCode != 200) {
+        print("Erreur Green-API (${response.statusCode}): ${response.body}");
+      }
       return response.statusCode == 200;
     } catch (e) {
+      print("Exception Green-API: $e");
       return false;
     }
   }

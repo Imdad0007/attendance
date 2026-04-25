@@ -262,10 +262,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    Button(label: "SE CONNECTER", onPressed: _handleLogin),
+
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 30),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Button(
+                            label: "SE CONNECTER",
+                            onPressed: _handleLogin,
+                          ),
+                  ),
                 ],
               ),
             ),

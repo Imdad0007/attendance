@@ -18,7 +18,6 @@ class Profil extends ConsumerStatefulWidget {
 
 class _ProfilState extends ConsumerState<Profil> {
   final AuthService _authService = AuthService();
-  final Color footerBgColor = const Color(0xFFFDF7FF);
 
   Future<void> _updateData(Map<String, dynamic> data) async {
     final user = ref.read(userProvider);

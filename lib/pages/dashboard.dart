@@ -758,6 +758,8 @@ class _DashboardState extends ConsumerState<Dashboard> {
       ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
+
+        // color : AppColors.bg,
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
