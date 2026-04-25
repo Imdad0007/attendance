@@ -113,6 +113,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Réinitialisation"),
+        backgroundColor: AppColors.bg,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -163,6 +164,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Nouveau mot de passe"),
+        backgroundColor: AppColors.bg,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

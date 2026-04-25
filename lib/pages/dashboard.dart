@@ -1552,7 +1552,15 @@ class _DashboardState extends ConsumerState<Dashboard> {
         surveillant:surveillant(id_surveillant, nom, prenom),
         seance:seance!inner(
           date_seance,
-          ecue:ecue(intitule_ecue)
+          ecue:ecue(
+            intitule_ecue,
+            ue:ue(
+              classe:classe(
+                filiere:filiere(nom_filiere),
+                niveau:niveau(libelle)
+              )
+            )
+          )
         )
       ''')
         .eq('seance.date_seance', today)
@@ -1589,7 +1597,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                 log['date_presence'],
               ).toLocal();
 
-              // Extraction sécurisée des relations (peuvent être des listes via Supabase)
+              // Extraction sécurisée des relations
               dynamic survData = log['surveillant'];
               if (survData is List && survData.isNotEmpty)
                 survData = survData[0];
@@ -1610,6 +1618,34 @@ class _DashboardState extends ConsumerState<Dashboard> {
               }
               final ecue = ecueData as Map<String, dynamic>?;
 
+              // Extraction de la classe
+              String classLabel = "";
+              try {
+                final ue = ecue?['ue'];
+                final classe = (ue is List && ue.isNotEmpty)
+                    ? ue[0]['classe']
+                    : ue?['classe'];
+                final filiere = (classe is List && classe.isNotEmpty)
+                    ? classe[0]['filiere']
+                    : classe?['filiere'];
+                final niveau = (classe is List && classe.isNotEmpty)
+                    ? classe[0]['niveau']
+                    : classe?['niveau'];
+
+                final nomFiliere = (filiere is List && filiere.isNotEmpty)
+                    ? filiere[0]['nom_filiere']
+                    : filiere?['nom_filiere'];
+                final libelleNiveau = (niveau is List && niveau.isNotEmpty)
+                    ? niveau[0]['libelle']
+                    : niveau?['libelle'];
+
+                if (nomFiliere != null && libelleNiveau != null) {
+                  classLabel = "$nomFiliere - $libelleNiveau";
+                }
+              } catch (e) {
+                debugPrint("Error parsing class label: $e");
+              }
+
               final DateTime dateSeance = DateTime.parse(
                 seance['date_seance'] ?? DateTime.now().toIso8601String(),
               );
@@ -1625,7 +1661,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                   ),
                 ),
                 subtitle: Text(
-                  "${ecue?['intitule_ecue'] ?? 'Cours inconnu'} • Séance du ${DateFormat('dd/MM/yyyy').format(dateSeance)}",
+                  "${ecue?['intitule_ecue'] ?? 'Cours inconnu'} ($classLabel) • Séance du ${DateFormat('dd/MM/yyyy').format(dateSeance)}",
                   style: const TextStyle(fontSize: 11),
                 ),
                 trailing: Text(

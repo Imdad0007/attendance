@@ -119,6 +119,14 @@ class HistoriqueNotifier
         }
       }
 
+      // Tri par date décroissante (plus récent en haut)
+      _items.sort((a, b) {
+        int dateCmp = b.dateSeance.compareTo(a.dateSeance);
+        if (dateCmp != 0) return dateCmp;
+        // Si même date, tri par heure de début décroissante
+        return b.heureDebut.compareTo(a.heureDebut);
+      });
+
       _offset = _items.length;
       state = AsyncValue.data(List.from(_items));
     } catch (e, st) {

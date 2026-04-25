@@ -1,6 +1,7 @@
 import 'package:attendance/composants/button.dart';
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:attendance/pages/pages_historique/onglet_historique.dart';
+import 'package:attendance/composants/colors.dart';
 import 'package:attendance/providers/user_provider.dart';
 import 'package:attendance/services/auth_service.dart';
 import 'package:attendance/composants/notification_ui.dart';
@@ -161,6 +162,8 @@ class _ProfilState extends ConsumerState<Profil> {
                 ),
                 const SizedBox(height: 60),
                 _logoutButton(),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -175,6 +178,7 @@ class _ProfilState extends ConsumerState<Profil> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Modifier le numéro"),
+        backgroundColor: AppColors.bg,
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
@@ -226,6 +230,8 @@ class _ProfilState extends ConsumerState<Profil> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Modifier le mot de passe"),
+        backgroundColor: AppColors.bg,
+
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

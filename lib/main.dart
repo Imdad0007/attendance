@@ -36,10 +36,14 @@ void main() async {
     debugPrint("Erreur intl: $e");
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  // On attend le chargement des réglages avant de lancer l'app
+  // avec un timeout de 5 secondes pour ne pas bloquer l'utilisateur
+  await _loadAppSettings().timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => debugPrint("Timeout lors du chargement des réglages"),
+  );
 
-  // Chargement asynchrone et non-bloquant des settings
-  _loadAppSettings();
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 Future<void> _loadAppSettings() async {
