@@ -133,7 +133,7 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
           "Détails de l'historique",
           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.black),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.bg,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),

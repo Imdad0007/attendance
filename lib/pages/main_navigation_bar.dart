@@ -9,8 +9,8 @@ import 'package:attendance/pages/pages_presence/onglet_presence.dart';
 import 'package:attendance/pages/pages_presence/success_registration.dart';
 import 'package:attendance/pages/pages_seance/creer_seance.dart';
 import 'package:attendance/pages/pages_seance/onglet_seance.dart';
-import 'package:attendance/pages/pages_seance/suivre_seance.dart';
-import 'package:attendance/pages/pages_utilisateurs/creer_seance.dart';
+import 'package:attendance/pages/pages_seance/consulter_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/creer_utilisateur.dart';
 import 'package:attendance/pages/pages_utilisateurs/lister.dart';
 import 'package:attendance/pages/pages_utilisateurs/onglet_utilisateurs.dart';
 import 'package:attendance/pages/pages_utilisateurs/retirer.dart';
@@ -310,9 +310,9 @@ class MainNavigationBar extends ConsumerWidget {
       case AppTab.home:
         return (icon: Icons.home_rounded, label: 'Accueil');
       case AppTab.seance:
-        return (icon: Icons.assignment_rounded, label: 'Seances');
+        return (icon: Icons.assignment_rounded, label: 'Séances');
       case AppTab.presence:
-        return (icon: Icons.how_to_reg_outlined, label: 'Presence');
+        return (icon: Icons.how_to_reg_outlined, label: 'Présence');
       case AppTab.historique:
         return (icon: Icons.history_rounded, label: 'Historique');
       case AppTab.utilisateurs:
@@ -343,8 +343,8 @@ class MainNavigationBar extends ConsumerWidget {
             seance: extra?['seance'],
           );
         }
-        if (adaptiveState.page == AdaptivePage.suivreSeance) {
-          return const SuivreSeance();
+        if (adaptiveState.page == AdaptivePage.consulterSeance) {
+          return const ConsulterSeance();
         }
         return const Seance();
       case AppTab.presence:

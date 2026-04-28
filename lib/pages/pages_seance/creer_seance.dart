@@ -420,7 +420,7 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
                   .read(adaptiveNavigationProvider.notifier)
                   .state = widget.mode == 'edit'
                   ? const AdaptiveNavigationState(
-                      page: AdaptivePage.suivreSeance,
+                      page: AdaptivePage.consulterSeance,
                     )
                   : const AdaptiveNavigationState.none();
               return;
@@ -638,8 +638,11 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
         if (mounted) {
           AppNotification.success("Séance modifiée avec succès");
           if (useMainLayoutRail(context)) {
-            ref.read(adaptiveNavigationProvider.notifier).state =
-                const AdaptiveNavigationState(page: AdaptivePage.suivreSeance);
+            ref
+                .read(adaptiveNavigationProvider.notifier)
+                .state = const AdaptiveNavigationState(
+              page: AdaptivePage.consulterSeance,
+            );
           } else {
             Navigator.pop(context, true); // retour suivi
           }

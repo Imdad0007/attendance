@@ -12,7 +12,6 @@ import 'package:printing/printing.dart';
 import 'package:attendance/composants/notification_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:attendance/services/web_download_service.dart';
-import 'package:attendance/services/native_download_service.dart';
 
 class Dashboard extends ConsumerStatefulWidget {
   const Dashboard({super.key});
@@ -706,7 +705,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  "PIGIER BÉNIN - Rapport Automatisé d'Assiduité",
+                  "PIGIER BÉNIN - Rapport d'Assiduité",
                   style: const pw.TextStyle(
                     fontSize: 7,
                     color: PdfColors.grey600,
@@ -759,7 +758,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
 
-        // color : AppColors.bg,
+        // backgroundColor : AppColors.bg,
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
@@ -1571,7 +1570,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   Widget _buildPerformanceAndAudit() {
     return _cardWrapper(
-      title: "Journal d'Audit (Audit Log)",
+      title: "Journal d'Activité",
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchAuditLog(),
         builder: (context, snapshot) {

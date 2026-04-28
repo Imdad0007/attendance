@@ -2,7 +2,7 @@ import 'package:attendance/composants/carte.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/config/adaptive_layout.dart';
 import 'package:attendance/pages/pages_seance/creer_seance.dart';
-import 'package:attendance/pages/pages_seance/suivre_seance.dart';
+import 'package:attendance/pages/pages_seance/consulter_seance.dart';
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,7 +33,7 @@ class Seance extends ConsumerWidget {
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 20),
                             child: Text(
-                              'Programmer les seances',
+                              'Plannifier les séances',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -44,7 +44,7 @@ class Seance extends ConsumerWidget {
                         ),
                         SizedBox(height: verticalSpacing * 2),
                         Carte(
-                          label: "Creer une seance",
+                          label: "Creer une séance",
                           icon: Icons.person_add,
                           color: const Color(0xFF2E7D32),
                           onTap: () {
@@ -69,7 +69,7 @@ class Seance extends ConsumerWidget {
                         ),
                         SizedBox(height: verticalSpacing * 2),
                         Carte(
-                          label: "Suivre les seances",
+                          label: "Consulter les séances",
                           icon: Icons.list,
                           color: const Color(0xFF1565C0),
                           onTap: () {
@@ -77,7 +77,7 @@ class Seance extends ConsumerWidget {
                               ref
                                   .read(adaptiveNavigationProvider.notifier)
                                   .state = const AdaptiveNavigationState(
-                                page: AdaptivePage.suivreSeance,
+                                page: AdaptivePage.consulterSeance,
                               );
                               return;
                             }
@@ -85,7 +85,7 @@ class Seance extends ConsumerWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const SuivreSeance(),
+                                builder: (context) => const ConsulterSeance(),
                               ),
                             );
                           },

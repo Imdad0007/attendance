@@ -1,7 +1,7 @@
 import 'package:attendance/composants/carte.dart';
 import 'package:attendance/composants/colors.dart';
 import 'package:attendance/config/adaptive_layout.dart';
-import 'package:attendance/pages/pages_utilisateurs/creer_seance.dart';
+import 'package:attendance/pages/pages_utilisateurs/creer_utilisateur.dart';
 import 'package:attendance/pages/pages_utilisateurs/lister.dart';
 import 'package:attendance/pages/pages_utilisateurs/retirer.dart';
 import 'package:attendance/providers/navigation_provider.dart';
@@ -34,7 +34,7 @@ class Utilisateur extends ConsumerWidget {
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 20),
                             child: Text(
-                              'Gerer les utilisateurs',
+                              'Gérer les utilisateurs',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -45,7 +45,7 @@ class Utilisateur extends ConsumerWidget {
                         ),
                         SizedBox(height: verticalSpacing * 2),
                         Carte(
-                          label: "Creer un compte",
+                          label: "Créer un compte",
                           icon: Icons.person_add,
                           color: const Color(0xFF2E7D32),
                           onTap: () {

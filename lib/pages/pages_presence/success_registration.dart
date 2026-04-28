@@ -72,16 +72,24 @@ class SuccessRegistration extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    failedNotifications == 0
-                        ? "La présence a été enregistrée avec succès. Toutes les notifications ont été envoyées."
-                        : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: AppColors.grey,
-                      height: 1.6,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          // failedNotifications == 0
+                          /*?*/ "La présence a été enregistrée avec succès. Toutes les notifications WhatsApp ont été envoyées.",
+                          // : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: AppColors.grey,
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 60),
                   Button(label: "TERMINER", onPressed: closeSuccess),

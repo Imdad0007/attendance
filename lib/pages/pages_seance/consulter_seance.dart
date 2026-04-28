@@ -8,14 +8,14 @@ import 'package:attendance/composants/notification_ui.dart';
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SuivreSeance extends ConsumerStatefulWidget {
-  const SuivreSeance({super.key});
+class ConsulterSeance extends ConsumerStatefulWidget {
+  const ConsulterSeance({super.key});
 
   @override
-  ConsumerState<SuivreSeance> createState() => _SuivreSeanceState();
+  ConsumerState<ConsulterSeance> createState() => _ConsulterSeanceState();
 }
 
-class _SuivreSeanceState extends ConsumerState<SuivreSeance> {
+class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
   final _supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> seances = [];
@@ -128,7 +128,7 @@ class _SuivreSeanceState extends ConsumerState<SuivreSeance> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         ),
         title: const Text(
-          "Suivi des séances",
+          "Consulter les séances",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),

@@ -13,7 +13,7 @@ enum AppTab {
 enum AdaptivePage {
   none,
   creerSeance,
-  suivreSeance,
+  consulterSeance,
   detailHistorique,
   classList,
   successRegistration,
