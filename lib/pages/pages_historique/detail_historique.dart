@@ -304,7 +304,7 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
                     _statCard(
                       "Présents",
                       widget.item.totalPresents.toString(),
-                      AppColors.green,
+                      const Color(0xFF16A34A),
                       Icons.check_circle_outline,
                     ),
                     const SizedBox(width: 15),
@@ -324,6 +324,7 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
                   decoration: BoxDecoration(
                     color: AppColors.blue.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: AppColors.blue.withOpacity(0.4)),
                   ),
                   child: Center(
                     child: Text(
@@ -409,7 +410,7 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
           decoration: BoxDecoration(
             color: color.withOpacity(0.05),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.1)),
+            border: Border.all(color: color.withOpacity(0.4)),
           ),
           child: Column(
             children: [

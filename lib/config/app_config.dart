@@ -30,20 +30,25 @@ class AppConfig {
 
   /// Met à jour les configurations depuis la base de données
   static void updateFromMap(Map<String, String> config) {
+    print("Mise à jour de la configuration AppConfig...");
     // Meta API
     if (config.containsKey('whatsapp_phone_id')) {
       whatsappPhoneNumberId = config['whatsapp_phone_id']!;
+      print("Meta Phone ID mis à jour: $whatsappPhoneNumberId");
     }
     if (config.containsKey('whatsapp_token')) {
       whatsappToken = config['whatsapp_token']!;
+      print("Meta Token mis à jour: ${whatsappToken.substring(0, 10)}...");
     }
 
     // Green API
     if (config.containsKey('green_api_id')) {
       greenApiIdInstance = config['green_api_id']!;
+      print("Green-API ID mis à jour: $greenApiIdInstance");
     }
     if (config.containsKey('green_api_token')) {
       greenApiTokenInstance = config['green_api_token']!;
+      print("Green-API Token mis à jour: $greenApiTokenInstance");
     }
   }
 }

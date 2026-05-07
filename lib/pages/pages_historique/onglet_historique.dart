@@ -21,7 +21,7 @@ class HistoriqueRepository {
     required bool isAdmin,
     int? selectedSurveillantId,
     int? ecueId,
-    int? classeId, // On garde classeId dans Flutter pour la logique
+    int? classeId, 
     DateTime? date,
     int limit = 20,
     int offset = 0,
@@ -31,7 +31,7 @@ class HistoriqueRepository {
       params: {
         'p_surveillant_id': selectedSurveillantId,
         'p_ecue_id': ecueId,
-        'p_classe_id': classeId, // On envoie l'ID de la classe
+        'p_classe_id': classeId, 
         'p_date': date != null ? DateFormat('yyyy-MM-dd').format(date) : null,
         'p_limit': limit,
         'p_offset': offset,
@@ -119,13 +119,6 @@ class HistoriqueNotifier
         }
       }
 
-      // Tri par date décroissante (plus récent en haut)
-      _items.sort((a, b) {
-        int dateCmp = b.dateSeance.compareTo(a.dateSeance);
-        if (dateCmp != 0) return dateCmp;
-        // Si même date, tri par heure de début décroissante
-        return b.heureDebut.compareTo(a.heureDebut);
-      });
 
       _offset = _items.length;
       state = AsyncValue.data(List.from(_items));

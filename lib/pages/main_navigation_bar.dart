@@ -314,7 +314,7 @@ class MainNavigationBar extends ConsumerWidget {
       case AppTab.presence:
         return (icon: Icons.how_to_reg_outlined, label: 'Présence');
       case AppTab.historique:
-        return (icon: Icons.history_rounded, label: 'Historique');
+        return (icon: Icons.history_rounded, label: 'Historiques');
       case AppTab.utilisateurs:
         return (icon: Icons.group_add_rounded, label: 'Utilisateurs');
       case AppTab.profil:

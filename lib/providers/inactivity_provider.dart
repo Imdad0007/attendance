@@ -9,7 +9,7 @@ import 'package:attendance/services/auth_service.dart';
 class InactivityNotifier extends StateNotifier<void> {
   final Ref ref;
   Timer? _timer;
-  static const inactivityDuration = Duration(minutes: 20);
+  static const inactivityDuration = Duration(minutes: 25);
 
   InactivityNotifier(this.ref) : super(null) {
     // On ne démarre le timer que si un utilisateur est connecté

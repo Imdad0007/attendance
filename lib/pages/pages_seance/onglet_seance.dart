@@ -44,7 +44,7 @@ class Seance extends ConsumerWidget {
                         ),
                         SizedBox(height: verticalSpacing * 2),
                         Carte(
-                          label: "Creer une séance",
+                          label: "Créer une séance",
                           icon: Icons.person_add,
                           color: const Color(0xFF2E7D32),
                           onTap: () {

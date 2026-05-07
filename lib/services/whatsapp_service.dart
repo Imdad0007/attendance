@@ -97,13 +97,32 @@ class WhatsAppService {
     required String courseName,
     required String coursehour,
   }) async {
+    print("Tentative d'envoi via Green-API...");
+    print("ID Instance: ${AppConfig.greenApiIdInstance}");
+    print("API Token: ${AppConfig.greenApiTokenInstance}");
+
     if (AppConfig.greenApiIdInstance.isEmpty ||
         AppConfig.greenApiTokenInstance.isEmpty ||
         AppConfig.greenApiIdInstance == 'TON_ID_INSTANCE') {
+      print("Erreur: Identifiants Green-API non configurés ou invalides.");
       return false;
     }
 
-    final formattedPhone = phone.replaceAll('+', '').replaceAll(' ', '').trim();
+    // Nettoyage radical : on ne garde QUE les chiffres
+    String formattedPhone = phone.replaceAll(RegExp(r'[^0-9]'), '').trim();
+    
+    // Si le numéro commence par 00, on enlève les deux premiers zéros
+    if (formattedPhone.startsWith('00')) {
+      formattedPhone = formattedPhone.substring(2);
+    }
+
+    print("Numéro formaté final (chiffres uniquement): $formattedPhone");
+
+    if (formattedPhone.isEmpty) {
+      print("Erreur: Le numéro de téléphone est vide après nettoyage.");
+      return false;
+    }
+
     final url = Uri.parse(
       "https://api.green-api.com/waInstance${AppConfig.greenApiIdInstance}/sendMessage/${AppConfig.greenApiTokenInstance}",
     );
@@ -118,14 +137,18 @@ class WhatsAppService {
         "Merci de prendre les dispositions nécessaires.\n\n"
         "_*La Surveillance Générale - PIGIER BÉNIN*_";
 
+    final Map<String, dynamic> body = {
+      "chatId": "$formattedPhone@c.us",
+      "message": message,
+    };
+
+    print("JSON envoyé à Green-API: ${jsonEncode(body)}");
+
     try {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "chatId": "$formattedPhone@c.us",
-          "message": message,
-        }),
+        body: jsonEncode(body),
       );
       if (response.statusCode != 200) {
         print("Erreur Green-API (${response.statusCode}): ${response.body}");
