@@ -75,7 +75,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
     setState(() => _isLoading = true);
     await Future.wait([
       _fetchKPIs(),
-      _fetchPerformance(),
       _fetchAcademicStats(),
       _fetchMetadata(),
     ]);
@@ -150,58 +149,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
     }
   }
 
-  Future<void> _fetchPerformance() async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-    try {
-      final response = await _supabase
-          .from('surveillant')
-          .select('id_surveillant, nom, prenom')
-          .filter('delete_at', 'is', null)
-          .eq('role', 'surveillant')
-          .order('nom', ascending: true)
-          .order('prenom');
-      final List<Map<String, dynamic>> perfList = [];
-
-      for (var s in (response as List)) {
-        final idSurv = s['id_surveillant'];
-
-        // 1. Séances assignées au surveillant pour aujourd'hui
-        final assignedResponse = await _supabase
-            .from('seance')
-            .select('id_seance')
-            .eq('id_surveillant', idSurv)
-            .eq('date_seance', today);
-        final assignedCount = (assignedResponse as List).length;
-
-        // 2. Séances validées (présences marquées) pour ces séances précisément
-        int doneCount = 0;
-        if (assignedCount > 0) {
-          final assignedIds = (assignedResponse as List)
-              .map((e) => e['id_seance'])
-              .toList();
-          final doneResponse = await _supabase
-              .from('presence')
-              .select('id_presence')
-              .eq('id_surveillant', idSurv)
-              .inFilter('id_seance', assignedIds);
-          doneCount = (doneResponse as List).length;
-        }
-
-        perfList.add({
-          'name': "${s['nom']} ${s['prenom']}",
-          'done': doneCount,
-          'assigned': assignedCount,
-          'rate': (assignedCount > 0)
-              ? ((doneCount / assignedCount) * 100).toInt()
-              : 0,
-        });
-      }
-      _performanceSurveillants = perfList;
-    } catch (e) {
-      debugPrint("Error Performance: $e");
-    }
-  }
 
   double _maxAbsences = 20; // Valeur par défaut pour l'échelle
 
@@ -870,15 +817,13 @@ class _DashboardState extends ConsumerState<Dashboard> {
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _buildPerformanceSurveillants()),
-                              const SizedBox(width: 20),
+
                               Expanded(child: _buildPerformanceAndAudit()),
                             ],
                           );
                         } else {
                           return Column(
                             children: [
-                              _buildPerformanceSurveillants(),
                               const SizedBox(height: 24),
                               _buildPerformanceAndAudit(),
                             ],
@@ -1419,126 +1364,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
     );
   }
 
-  Widget _buildPerformanceSurveillants() {
-    return _cardWrapper(
-      title: "Performance des Surveillants",
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isLarge = constraints.maxWidth > 600;
-
-          return SizedBox(
-            width: double.infinity,
-            child: DataTable(
-              horizontalMargin: 0,
-              columnSpacing: isLarge ? 40 : 10,
-              headingRowHeight: 50,
-              dataRowMinHeight: 55,
-              dataRowMaxHeight: 70,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    "Agent",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "Séances",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                ),
-                DataColumn(
-                  label: Expanded(
-                    child: Text(
-                      "Taux de complétion",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              rows: _performanceSurveillants
-                  .map(
-                    (p) => DataRow(
-                      cells: [
-                        DataCell(
-                          Text(
-                            p['name'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              "${p['done']} / ${p['assigned']}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: _progressBar(p['rate'], isLarge: isLarge),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _progressBar(int value, {bool isLarge = false}) {
-    final Color color = value > 80
-        ? Colors.green
-        : (value > 40 ? Colors.orange : Colors.red);
-
-    return Row(
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: value / 100,
-              backgroundColor: Colors.grey[200],
-              color: color,
-              minHeight: isLarge ? 12 : 8,
-            ),
-          ),
-        ),
-        const SizedBox(width: 15),
-        Text(
-          "$value%",
-          style: TextStyle(
-            fontSize: isLarge ? 14 : 12,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
+  
   Future<List<Map<String, dynamic>>> fetchAuditLog() async {
     // Obtenir la date du jour au format YYYY-MM-DD
     final String today = DateTime.now().toIso8601String().split('T')[0];

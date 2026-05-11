@@ -42,13 +42,15 @@ class AppColors {
   static const grey = Colors.grey;
   static const clearGrey = Color(0xFFE0E0E0);
   static const deepGrey = Color.fromARGB(255, 172, 172, 172);
-  static const green = Colors.greenAccent;
+
+  static const green = Color(0xFF16A34A);
   static const red = Color.fromARGB(255, 238, 98, 98);
   static const orange = Colors.orange;
   static const blue = Color.fromARGB(255, 74, 138, 202);
 
   // Vert (plus foncé)
   // static const green = Color(0xFF2E7D32);   // Green 800
+    // static const green = Colors.greenAccent;
 
   // // Rouge (plus profond)
   // static const red = Color(0xFFC62828);     // Red 800

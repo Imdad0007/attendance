@@ -257,6 +257,7 @@ class _ProfilState extends ConsumerState<Profil> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text("Annuler"),
           ),
+
           ElevatedButton(
             onPressed: () {
               if (nPass.text == cPass.text && nPass.text.isNotEmpty) {

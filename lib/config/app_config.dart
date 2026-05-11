@@ -24,31 +24,24 @@ class AppConfig {
         'EAAWdK9IJdl8BQo1WrzXiIQCcDugIKqOopK0cvZCOxYZC9uc3Y2hVLNgEubhlxEQE0PqywPfu2atGbpP5ZB7q3umuUh1uKfuJNl5Yioojub0luqOETXFnzJ2nyrZBn2LwgdeELD2XzGb5nAB2tFzCtaN7JYgCx3oah3xKNgishUmBQrye9ORySGun3fDtY89S0gZDZD',
   );
 
-  // --- VARIABLES GREEN API ---
-  static String greenApiIdInstance = 'ID_INSTANCE';
-  static String greenApiTokenInstance = 'API_TOKEN_INSTANCE';
+  // --- VARIABLES SERVEUR LOCAL
+  static String localGatewayUrl = 'http://localhost:3000';
 
   /// Met à jour les configurations depuis la base de données
   static void updateFromMap(Map<String, String> config) {
-    print("Mise à jour de la configuration AppConfig...");
+    
+    if (config.containsKey('local_gateway_url')) {
+      localGatewayUrl = config['local_gateway_url']!;
+      print("Passerelle Locale URL : $localGatewayUrl");
+    }
     // Meta API
     if (config.containsKey('whatsapp_phone_id')) {
       whatsappPhoneNumberId = config['whatsapp_phone_id']!;
-      print("Meta Phone ID mis à jour: $whatsappPhoneNumberId");
     }
     if (config.containsKey('whatsapp_token')) {
       whatsappToken = config['whatsapp_token']!;
-      print("Meta Token mis à jour: ${whatsappToken.substring(0, 10)}...");
     }
 
-    // Green API
-    if (config.containsKey('green_api_id')) {
-      greenApiIdInstance = config['green_api_id']!;
-      print("Green-API ID mis à jour: $greenApiIdInstance");
-    }
-    if (config.containsKey('green_api_token')) {
-      greenApiTokenInstance = config['green_api_token']!;
-      print("Green-API Token mis à jour: $greenApiTokenInstance");
-    }
+    
   }
 }

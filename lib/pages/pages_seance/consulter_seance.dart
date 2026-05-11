@@ -19,6 +19,8 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
   final _supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> seances = [];
+  Map<String, List<Map<String, dynamic>>> groupedSeances = {};
+  Map<String, bool> expandedDates = {};
   Set<int> seancesFaites = {};
 
   bool isLoading = true;
@@ -55,11 +57,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
 
   Future<void> _fetchSeances() async {
     try {
-      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-      final response = await _supabase
-          .from('seance')
-          .select('''
+      final response = await _supabase.from('seance').select('''
         id_seance,
         date_seance,
         heure_debut,
@@ -67,7 +65,6 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
         id_ecue,
         id_prof,
         id_salle,
-        id_surveillant,
         ecue (
           id_ecue,
           intitule_ecue,
@@ -81,16 +78,29 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
             )
           )
         ),
-        surveillant (id_surveillant, nom, prenom),
         professeur (id_prof, nom, prenom),
         salle (id_salle, nom)
-      ''')
-          .eq('date_seance', today)
-          .order('date_seance', ascending: false)
-          .order('id_seance', ascending: false);
+      ''').order('date_seance', ascending: false).order('id_seance', ascending: false);
+
+      final List<Map<String, dynamic>> allSeances =
+          List<Map<String, dynamic>>.from(response);
+
+      final Map<String, List<Map<String, dynamic>>> grouped = {};
+      for (var s in allSeances) {
+        final date = s['date_seance'] ?? 'Sans date';
+        if (!grouped.containsKey(date)) {
+          grouped[date] = [];
+          // Par défaut, on déplie les dates récentes ou toutes
+          if (!expandedDates.containsKey(date)) {
+            expandedDates[date] = true;
+          }
+        }
+        grouped[date]!.add(s);
+      }
 
       setState(() {
-        seances = List<Map<String, dynamic>>.from(response);
+        seances = allSeances;
+        groupedSeances = grouped;
       });
     } catch (e) {
       debugPrint("Erreur seance: $e");
@@ -103,16 +113,22 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
       time.length >= 5 ? time.substring(0, 5) : time;
 
   String _formatDate(String date) {
-    return DateFormat('dd MMM yyyy', 'fr_FR').format(DateTime.parse(date));
+    if (date == 'Sans date') return date;
+    try {
+      return DateFormat('dd/MM/yyyy').format(DateTime.parse(date));
+    } catch (e) {
+      return date;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final useAdaptiveNavigation = useMainLayoutRail(context);
+    final sortedDates = groupedSeances.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
@@ -132,7 +148,6 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
@@ -140,7 +155,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _loadData,
-                  child: seances.isEmpty
+                  child: groupedSeances.isEmpty
                       ? ListView(
                           children: [
                             SizedBox(
@@ -156,7 +171,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
                                   ),
                                   SizedBox(height: 20),
                                   Text(
-                                    "Aucune séance programmée pour aujourd'hui.",
+                                    "Aucune séance programmée.",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 18,
@@ -170,11 +185,15 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
                           ],
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(20),
-                          itemCount: seances.length,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          itemCount: sortedDates.length,
                           itemBuilder: (context, index) {
-                            final s = seances[index];
-                            return _buildCard(s);
+                            final date = sortedDates[index];
+                            final sessions = groupedSeances[date]!;
+                            return _buildDateGroup(date, sessions);
                           },
                         ),
                 ),
@@ -183,15 +202,67 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
     );
   }
 
-  // 🎴 CARD (TON DESIGN + STATUS)
+  Widget _buildDateGroup(String date, List<Map<String, dynamic>> sessions) {
+    final isExpanded = expandedDates[date] ?? true;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              expandedDates[date] = !isExpanded;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            child: Row(
+              children: [
+                Text(
+                  _formatDate(date),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.blue.shade800,
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.blue.shade800,
+                  size: 35,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded)
+          Column(
+            children: sessions.map((s) => _buildCard(s)).toList(),
+          ),
+      ],
+    );
+  }
+
   Widget _buildCard(Map<String, dynamic> s) {
     final ecue = s['ecue'] ?? {};
     final ue = ecue['ue'] ?? {};
     final classe = ue['classe'] ?? {};
     final filiere = classe['filiere'] ?? {};
     final niveau = classe['niveau'] ?? {};
-
-    final surveillant = s['surveillant'] ?? {};
     final prof = s['professeur'] ?? {};
     final salle = s['salle'] ?? {};
 
@@ -232,33 +303,22 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              "${surveillant['nom'] ?? ''} ${surveillant['prenom'] ?? ''}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ),
-
+                          
+                          _dateChip(_formatDate(s['date_seance'])),
+                         
                           _statusChip(isDone),
                         ],
                       ),
 
-                      const SizedBox(height: 10),
 
-                      _dateChip(_formatDate(s['date_seance'])),
-
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
 
                       _infoRow(
                         Icons.school_outlined,
                         "Classe : ${filiere['nom_filiere'] ?? ''} - ${niveau['libelle'] ?? ''}",
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
 
                       _infoRow(
                         Icons.book_outlined,
@@ -355,6 +415,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
       builder: (_) => AlertDialog(
         title: const Text("Suppression"),
         content: const Text("Voulez-vous supprimer cette séance ?"),
+        backgroundColor: AppColors.bg,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -363,6 +424,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Supprimer", style: TextStyle(color: Colors.red)),
+          
           ),
         ],
       ),
@@ -373,12 +435,9 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
     try {
       await _supabase.from('seance').delete().eq('id_seance', idSeance);
 
-      setState(() {
-        seances.removeWhere((s) => s['id_seance'] == idSeance);
-      });
-
       if (mounted) {
         AppNotification.success("Séance supprimée avec succès");
+        _loadData(); // Rafraîchir tout pour recalculer les groupes
       }
     } catch (e) {
       debugPrint("Erreur delete: $e");
@@ -395,7 +454,6 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
       'id_ecue': s['id_ecue'], // Récupéré directement
       'id_prof': s['id_prof'],
       'id_salle': s['id_salle'],
-      'id_surveillant': s['id_surveillant'],
       'id_niveau': classe['id_niveau'],
       'id_filiere': classe['id_filiere'],
       'id_classe': classe['id_classe'],
@@ -428,16 +486,16 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isDone
-            ? Colors.green.withOpacity(0.1)
+            ? Color(0xFF16A34A).withOpacity(0.1)
             : Colors.orange.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         isDone ? "EFFECTUÉ" : "EN ATTENTE",
         style: TextStyle(
-          color: isDone ? Colors.green : Colors.orange,
+          color: isDone ? Color(0xFF16A34A) : Colors.orange,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 14,
         ),
       ),
     );
@@ -453,7 +511,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
       child: Text(
         date,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Colors.blue,
         ),

@@ -25,23 +25,21 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
   int? selectedEcue;
   int? selectedProf;
   int? selectedSalle;
-  int? selectedSurveillant;
   TimeOfDay? heureDebut;
   TimeOfDay? heureFin;
+  DateTime? dateSeance;
 
   List<Map<String, dynamic>> niveaux = [];
   List<Map<String, dynamic>> filieres = [];
   List<Map<String, dynamic>> ecue = [];
   List<Map<String, dynamic>> professeurs = [];
   List<Map<String, dynamic>> salles = [];
-  List<Map<String, dynamic>> surveillant = [];
 
   bool isLoadingNiveaux = false;
   bool isLoadingFilieres = false;
   bool isLoadingEcue = false;
   bool isLoadingProfs = false;
   bool isLoadingSalles = false;
-  bool isLoadingSurveillant = false;
   bool isNavigating = false;
   bool _isEditInitialized = false;
 
@@ -51,7 +49,7 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
       selectedEcue != null &&
       selectedProf != null &&
       selectedSalle != null &&
-      selectedSurveillant != null &&
+      dateSeance != null &&
       heureDebut != null &&
       heureFin != null &&
       (heureDebut!.hour < heureFin!.hour ||
@@ -65,9 +63,9 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
       selectedEcue = null;
       selectedProf = null;
       selectedSalle = null;
-      selectedSurveillant = null;
       heureDebut = null;
       heureFin = null;
+      dateSeance = DateTime.now();
       filieres = [];
       ecue = [];
     });
@@ -78,6 +76,7 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
   @override
   void initState() {
     super.initState();
+    dateSeance = DateTime.now();
     _fetchInitialData();
   }
 
@@ -86,14 +85,12 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
       isLoadingNiveaux = false;
       isLoadingProfs = false;
       isLoadingSalles = false;
-      isLoadingSurveillant = false;
     });
 
     await Future.wait([
       _fetchNiveaux(),
       _fetchProfesseurs(),
       _fetchSalles(),
-      _fetchSurveillant(),
     ]);
 
     if (widget.mode == 'edit') {
@@ -148,7 +145,15 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
       selectedEcue = s['id_ecue'];
       selectedProf = s['id_prof'];
       selectedSalle = s['id_salle'];
-      selectedSurveillant = s['id_surveillant'];
+
+      // Parsing de la date
+      try {
+        if (s['date_seance'] != null) {
+          dateSeance = DateTime.parse(s['date_seance']);
+        }
+      } catch (e) {
+        debugPrint("Erreur format date: $e");
+      }
 
       // Parsing du temps
       try {
@@ -316,31 +321,9 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
     }
   }
 
-  Future<void> _fetchSurveillant() async {
-    try {
-      final response = await _supabase
-          .from('surveillant')
-          .select('id_surveillant, nom, prenom')
-          .filter('delete_at', 'is', null)
-          .eq('role', 'surveillant')
-          .order('nom', ascending: true);
-
-      setState(() {
-        surveillant = (response as List)
-            .map(
-              (item) => {
-                'id_surveillant': item['id_surveillant'],
-                'nom': item['nom'],
-                'prenom': item['prenom'],
-              },
-            )
-            .toList();
-
-        isLoadingSurveillant = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingSurveillant = false);
-    }
+  String _formatDate(DateTime? date) {
+    if (date == null) return "Choisir une date";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 
   String _formatTime(TimeOfDay? time) {
@@ -348,25 +331,34 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
-  // Future<void> _selectTime(BuildContext context, bool isDebut) async {
-  //   final TimeOfDay? picked = await showTimePicker(
-  //     context: context,
-  //           backgroundColor: const Color(0xFFF0F2F5),
+  
 
-  //     initialTime: isDebut
-  //         ? const TimeOfDay(hour: 7, minute: 0)
-  //         : const TimeOfDay(hour: 12, minute: 0),
-  //     initialEntryMode: TimePickerEntryMode.inputOnly,
-  //     builder: (context, child) => MediaQuery(
-  //       data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-  //       child: child!,
-  //     ),
-  //     helpText: isDebut ? 'HEURE DE DÉBUT' : 'HEURE DE FIN',
-  //   );
-  //   if (picked != null) {
-  //     setState(() => isDebut ? heureDebut = picked : heureFin = picked);
-  //   }
-  // }
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: dateSeance ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2E7D32),
+              onPrimary: Colors.white,
+              surface: Color(0xFFF0F2F5),
+            ),
+            dialogBackgroundColor: const Color(0xFFF0F2F5),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != dateSeance) {
+      setState(() {
+        dateSeance = picked;
+      });
+    }
+  }
 
   Future<void> _selectTime(BuildContext context, bool isDebut) async {
     final TimeOfDay? picked = await showTimePicker(
@@ -570,27 +562,11 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
                       onChanged: (val) => setState(() => selectedSalle = val),
                     ),
 
-                  const SizedBox(height: 20),
-
-                  if (isLoadingSurveillant)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    DropdownField<int>(
-                      label: "SURVEILLANT",
-                      value: selectedSurveillant,
-                      items: surveillant
-                          .map(
-                            (s) => DropdownMenuItem<int>(
-                              value: s['id_surveillant'],
-                              child: Text("${s['nom']} ${s['prenom']}"),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedSurveillant = val),
-                    ),
+                  
 
                   if (selectedEcue != null) ...[
+                    const SizedBox(height: 20),
+                    _buildDateSection(),
                     const SizedBox(height: 20),
                     _buildTimeSection(),
                   ],
@@ -619,6 +595,7 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
     setState(() => isNavigating = true);
 
     try {
+      final dateSeanceStr = dateSeance?.toIso8601String().split('T')[0];
       final heureDebutStr = _formatTime(heureDebut);
       final heureFinStr = _formatTime(heureFin);
 
@@ -629,7 +606,7 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
               'id_ecue': selectedEcue,
               'id_prof': selectedProf,
               'id_salle': selectedSalle,
-              'id_surveillant': selectedSurveillant,
+              'date_seance': dateSeanceStr,
               'heure_debut': heureDebutStr,
               'heure_fin': heureFinStr,
             })
@@ -652,10 +629,9 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
           'id_ecue': selectedEcue,
           'id_prof': selectedProf,
           'id_salle': selectedSalle,
-          'id_surveillant': selectedSurveillant,
+          'date_seance': dateSeanceStr,
           'heure_debut': heureDebutStr,
           'heure_fin': heureFinStr,
-          'date_seance': DateTime.now().toIso8601String().split('T')[0],
         });
 
         if (mounted) {
@@ -665,11 +641,54 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error("Erreur lors de l'enregistrement", error: e);
+        AppNotification.error("Erreur lors de l'enregistrement");
       }
     } finally {
       if (mounted) setState(() => isNavigating = false);
     }
+  }
+
+  Widget _buildDateSection() {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: AppColors.grey, width: 3)),
+      ),
+      padding: const EdgeInsets.only(left: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Date de la séance",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _selectDate(context),
+            borderRadius: BorderRadius.circular(35),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+              decoration: BoxDecoration(
+                color: AppColors.clearGrey,
+                borderRadius: BorderRadius.circular(35),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDate(dateSeance),
+                    style: const TextStyle(fontSize: 16, color: AppColors.black),
+                  ),
+                  const Icon(Icons.calendar_today, color: AppColors.grey),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTimeSection() {

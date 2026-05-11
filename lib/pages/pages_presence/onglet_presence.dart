@@ -49,11 +49,11 @@ class _Presence extends ConsumerState<Presence> {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'seance',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id_surveillant',
-            value: user.idSurveillant,
-          ),
+          // filter: PostgresChangeFilter(
+          //   type: PostgresChangeFilterType.eq,
+          //   column: 'id_surveillant',
+          //   value: user.idSurveillant,
+          // ),
           callback: (payload) {
             debugPrint(
               'Changement détecté dans les séances : ${payload.toString()}',
@@ -120,11 +120,10 @@ class _Presence extends ConsumerState<Presence> {
           )
         ),
 
-        surveillant (nom, prenom),
         professeur (nom, prenom),
         salle (nom)
       ''')
-          .eq('id_surveillant', user.idSurveillant!)
+          // .eq('id_surveillant', user.idSurveillant!)
           .eq('date_seance', today)
           .order('date_seance', ascending: false)
           .order('id_seance', ascending: false);
@@ -181,7 +180,7 @@ class _Presence extends ConsumerState<Presence> {
                         const SizedBox(height: 5),
                         const Center(
                           child: Text(
-                            "Liste des appels de présence assignés aujourd'hui",
+                            "Liste des contrôles de présence d'aujourd'hui",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 16,
@@ -207,7 +206,7 @@ class _Presence extends ConsumerState<Presence> {
                                 ),
                                 const SizedBox(height: 20),
                                 const Text(
-                                  "Vous n'êtes assigné à aucune classe pour la présence aujourd'hui.",
+                                  "Aucune séance programmée aujourd'hui.",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: Colors.grey,
@@ -258,7 +257,7 @@ class _Presence extends ConsumerState<Presence> {
     final filiere = classe['filiere'] ?? {};
     final niveau = classe['niveau'] ?? {};
 
-    final surveillant = s['surveillant'] ?? {};
+    // final surveillant = s['surveillant'] ?? {};
     final prof = s['professeur'] ?? {};
     final salle = s['salle'] ?? {};
 
@@ -300,33 +299,22 @@ class _Presence extends ConsumerState<Presence> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Text(
-                              "${surveillant['nom'] ?? ''} ${surveillant['prenom'] ?? ''}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ),
-
+                          
+                          _dateChip(_formatDate(s['date_seance'])),
+                         
                           _statusChip(isDone),
                         ],
                       ),
 
-                      const SizedBox(height: 10),
 
-                      _dateChip(_formatDate(s['date_seance'])),
-
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
 
                       _infoRow(
                         Icons.school_outlined,
                         "Classe : ${filiere['nom_filiere'] ?? ''} - ${niveau['libelle'] ?? ''}",
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
 
                       _infoRow(
                         Icons.book_outlined,
@@ -437,7 +425,7 @@ class _Presence extends ConsumerState<Presence> {
         style: TextStyle(
           color: isDone ? Colors.green : Colors.orange,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 14,
         ),
       ),
     );
@@ -453,7 +441,7 @@ class _Presence extends ConsumerState<Presence> {
       child: Text(
         date,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Colors.blue,
         ),

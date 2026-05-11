@@ -183,6 +183,7 @@ class Historique extends ConsumerStatefulWidget {
 
 class _HistoriqueState extends ConsumerState<Historique> {
   final ScrollController _scrollController = ScrollController();
+  Map<String, bool> expandedDates = {};
 
   @override
   void initState() {
@@ -200,6 +201,70 @@ class _HistoriqueState extends ConsumerState<Historique> {
         _scrollController.position.maxScrollExtent - 200) {
       ref.read(historiqueProvider.notifier).loadMore();
     }
+  }
+
+  String _formatDateHeader(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  Widget _buildDateGroup(String date, List<HistoriqueModel> items) {
+    final isExpanded = expandedDates[date] ?? true;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              expandedDates[date] = !isExpanded;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            child: Row(
+              children: [
+                Text(
+                  _formatDateHeader(date),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.blue.shade800,
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.blue.shade800,
+                  size: 35,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded)
+          Column(
+            children: items.map((item) => _HistoriqueCard(item: item)).toList(),
+          ),
+      ],
+    );
   }
 
   void _showSurveillants() async {
@@ -497,6 +562,21 @@ class _HistoriqueState extends ConsumerState<Historique> {
                     error: (e, _) => _errorState(),
                     data: (historiques) {
                       if (historiques.isEmpty) return _emptyState();
+
+                      // Groupement par date
+                      final Map<String, List<HistoriqueModel>> grouped = {};
+                      for (var item in historiques) {
+                        final dateKey =
+                            DateFormat('yyyy-MM-dd').format(item.dateSeance);
+                        if (!grouped.containsKey(dateKey)) {
+                          grouped[dateKey] = [];
+                        }
+                        grouped[dateKey]!.add(item);
+                      }
+
+                      final sortedDates = grouped.keys.toList()
+                        ..sort((a, b) => b.compareTo(a));
+
                       return RefreshIndicator(
                         color: AppColors.primary,
                         onRefresh: () => notifier.loadInitial(),
@@ -504,10 +584,16 @@ class _HistoriqueState extends ConsumerState<Historique> {
                           controller: _scrollController,
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           itemCount:
-                              historiques.length + (notifier._hasMore ? 1 : 0),
-                          itemBuilder: (_, i) => i == historiques.length
-                              ? _loadingMoreIndicator()
-                              : _HistoriqueCard(item: historiques[i]),
+                              sortedDates.length +
+                              (notifier._hasMore ? 1 : 0),
+                          itemBuilder: (_, i) {
+                            if (i == sortedDates.length) {
+                              return _loadingMoreIndicator();
+                            }
+                            final dateKey = sortedDates[i];
+                            final items = grouped[dateKey]!;
+                            return _buildDateGroup(dateKey, items);
+                          },
                         ),
                       );
                     },

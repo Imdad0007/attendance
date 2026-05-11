@@ -159,7 +159,7 @@ class _ClassListState extends ConsumerState<ClassList> {
       if (!mounted) return;
       _redirectToSuccess(failed);
     } catch (e) {
-      AppNotification.error("Erreur lors de l'enregistrement", error: e);
+      AppNotification.error("Erreur lors de l'enregistrement");
       if (mounted) setState(() => _isSaving = false);
     }
   }

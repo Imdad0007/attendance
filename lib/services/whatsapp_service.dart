@@ -1,9 +1,33 @@
 import 'dart:convert';
 import 'package:attendance/config/app_config.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 class WhatsAppService {
-  /// Envoie la notification via Meta ET Green-API en PARALLÈLE
+  /// Nettoie et formate le numéro de téléphone pour WhatsApp
+  static String _formatPhone(String phone) {
+    // On garde le numéro tel quel (juste les chiffres) car la BDD est déjà correcte
+    return phone.replaceAll(RegExp(r'[^0-9]'), '').trim();
+  }
+
+  /// Ouvre WhatsApp directement sur l'appareil avec le message pré-rempli
+  static Future<void> launchWhatsAppDirectly({
+    required String phone,
+    required String message,
+  }) async {
+    final formattedPhone = _formatPhone(phone);
+    final Uri url = Uri.parse(
+      "https://wa.me/$formattedPhone?text=${Uri.encodeComponent(message)}",
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("Impossible d'ouvrir WhatsApp pour le numéro: $formattedPhone");
+    }
+  }
+
+  /// Envoie la notification via Meta ET la Passerelle Locale en PARALLÈLE
   static Future<bool> sendAbsenceTemplate({
     required String phone,
     required String studentName,
@@ -11,14 +35,22 @@ class WhatsAppService {
     required String courseName,
     required String coursehour,
   }) async {
-    // On lance les deux en même temps
+    // 1. Construction du message texte pour la passerelle locale
+    final String textMessage =
+        "*NOTIFICATION D'ABSENCE*\n\n"
+        "Bonjour cher parent,\n\n"
+        "Nous vous informons que l'étudiant(e) *${studentName.toUpperCase()}* a été enregistré(e) *ABSENT(E)* lors de la séance suivante :\n\n"
+        "*Cours :* $courseName\n"
+        "*Date :* $dateAbsence\n"
+        "*Horaire :* $coursehour\n\n"
+        "Merci de prendre les dispositions nécessaires.\n\n\n"
+        "*La Surveillance Générale* ✍🏻";
+
+    // 2. Lancement des deux envois en parallèle
     final results = await Future.wait([
-      sendGreenApiNotification(
-        phone: phone,
-        studentName: studentName,
-        dateAbsence: dateAbsence,
-        courseName: courseName,
-        coursehour: coursehour,
+      sendLocalGatewayNotification(
+        phone: _formatPhone(phone),
+        message: textMessage,
       ),
       sendMetaApiNotification(
         phone: phone,
@@ -33,7 +65,7 @@ class WhatsAppService {
     return results[0] || results[1];
   }
 
-  /// Méthode isolée pour Meta API
+  /// Méthode pour Meta API (Templates officiels)
   static Future<bool> sendMetaApiNotification({
     required String phone,
     required String studentName,
@@ -41,21 +73,26 @@ class WhatsAppService {
     required String courseName,
     required String coursehour,
   }) async {
-    if (AppConfig.whatsappPhoneNumberId.isEmpty ||
-        AppConfig.whatsappToken.isEmpty) {
+    // Trim des identifiants pour éviter les espaces invisibles venant de la config
+    final String phoneId = AppConfig.whatsappPhoneNumberId.trim();
+    final String token = AppConfig.whatsappToken.trim();
+
+    if (phoneId.isEmpty || token.isEmpty) {
       return false;
     }
 
     final url = Uri.parse(
-      "https://graph.facebook.com/v19.0/${AppConfig.whatsappPhoneNumberId}/messages",
+      "https://graph.facebook.com/v19.0/$phoneId/messages",
     );
-    final formattedPhone = phone.replaceAll('+', '').replaceAll(' ', '').trim();
+    
+    // Nettoyage rigoureux : Meta n'accepte QUE les chiffres (pas de +, pas d'espaces, pas de tabs)
+    final formattedPhone = phone.replaceAll(RegExp(r'[^0-9]'), '').trim();
 
     try {
       final response = await http.post(
         url,
         headers: {
-          "Authorization": "Bearer ${AppConfig.whatsappToken}",
+          "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({
@@ -88,74 +125,48 @@ class WhatsAppService {
       return false;
     }
   }
-
-  /// Méthode pour Green-API
-  static Future<bool> sendGreenApiNotification({
+  /// Méthode pour la passerelle locale Node.js
+  static Future<bool> sendLocalGatewayNotification({
     required String phone,
-    required String studentName,
-    required String dateAbsence,
-    required String courseName,
-    required String coursehour,
+    required String message,
   }) async {
-    print("Tentative d'envoi via Green-API...");
-    print("ID Instance: ${AppConfig.greenApiIdInstance}");
-    print("API Token: ${AppConfig.greenApiTokenInstance}");
+    if (AppConfig.localGatewayUrl.isEmpty) return false;
 
-    if (AppConfig.greenApiIdInstance.isEmpty ||
-        AppConfig.greenApiTokenInstance.isEmpty ||
-        AppConfig.greenApiIdInstance == 'TON_ID_INSTANCE') {
-      print("Erreur: Identifiants Green-API non configurés ou invalides.");
-      return false;
+    // Construction robuste de l'URL pour s'assurer de pointer sur /send-message
+    String baseUrl = AppConfig.localGatewayUrl.trim();
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
     }
-
-    // Nettoyage radical : on ne garde QUE les chiffres
-    String formattedPhone = phone.replaceAll(RegExp(r'[^0-9]'), '').trim();
-    
-    // Si le numéro commence par 00, on enlève les deux premiers zéros
-    if (formattedPhone.startsWith('00')) {
-      formattedPhone = formattedPhone.substring(2);
-    }
-
-    print("Numéro formaté final (chiffres uniquement): $formattedPhone");
-
-    if (formattedPhone.isEmpty) {
-      print("Erreur: Le numéro de téléphone est vide après nettoyage.");
-      return false;
-    }
-
-    final url = Uri.parse(
-      "https://api.green-api.com/waInstance${AppConfig.greenApiIdInstance}/sendMessage/${AppConfig.greenApiTokenInstance}",
-    );
-
-    final String message =
-        "🔔 *NOTIFICATION D'ABSENCE*\n\n"
-        "Bonjour cher parent,\n\n"
-        "Nous vous informons que l'étudiant(e) *${studentName.toUpperCase()}* a été enregistré(e) *ABSENT(E)* lors de la séance suivante :\n\n"
-        "📚 *Cours :* $courseName\n"
-        "📅 *Date :* $dateAbsence\n"
-        "🕒 *Horaire :* $coursehour\n\n"
-        "Merci de prendre les dispositions nécessaires.\n\n"
-        "_*La Surveillance Générale - PIGIER BÉNIN*_";
-
-    final Map<String, dynamic> body = {
-      "chatId": "$formattedPhone@c.us",
-      "message": message,
-    };
-
-    print("JSON envoyé à Green-API: ${jsonEncode(body)}");
+    final gatewayUrl = "$baseUrl/send-message";
 
     try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(body),
+      final url = Uri.parse(gatewayUrl);
+
+      final response = await http
+          .post(
+            url,
+            headers: {
+              "Content-Type": "application/json",
+              "ngrok-skip-browser-warning": "true",
+            },
+            body: jsonEncode({"phone": phone, "message": message}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print(
+        "Réponse passerelle locale: ${response.statusCode} - ${response.body}",
       );
-      if (response.statusCode != 200) {
-        print("Erreur Green-API (${response.statusCode}): ${response.body}");
+
+      if (response.statusCode == 200) {
+        print("Message envoyé avec succès via la Passerelle Locale");
+        return true;
       }
-      return response.statusCode == 200;
+      print(
+        "Échec passerelle locale (${response.statusCode}): ${response.body}",
+      );
+      return false;
     } catch (e) {
-      print("Exception Green-API: $e");
+      print("Passerelle locale non détectée ou erreur: $e");
       return false;
     }
   }
