@@ -229,7 +229,7 @@ class _CreerState extends ConsumerState<Creer> {
                   const SizedBox(height: 24),
 
                   Button2(
-                    label: "CRÉE",
+                    label: "CRÉER",
                     gradient: AppColors.greenGradient,
                     onPressed: _loading ? null : _creerSurveillant,
                   ),
