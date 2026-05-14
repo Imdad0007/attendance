@@ -39,10 +39,10 @@ class WhatsAppService {
     final String textMessage =
         "*NOTIFICATION D'ABSENCE*\n\n"
         "Bonjour cher parent,\n\n"
-        "Nous vous informons que l'étudiant(e) *${studentName.toUpperCase()}* a été enregistré(e) *ABSENT(E)* lors de la séance suivante :\n\n"
-        "*Cours :* $courseName\n"
-        "*Date :* $dateAbsence\n"
-        "*Horaire :* $coursehour\n\n"
+        "Nous vous informons que l'étudiant(e) *${studentName.toUpperCase()}* est *ABSENT(E)* lors de la séance de cours suivante :\n\n"
+        "*Cours :*  $courseName\n"
+        "*Date :*  $dateAbsence\n"
+        "*Horaire :*  $coursehour\n\n"
         "Merci de prendre les dispositions nécessaires.\n\n\n"
         "*La Surveillance Générale* ✍🏻";
 

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:attendance/composants/button.dart';
 import 'package:attendance/composants/colors.dart';
@@ -42,6 +43,13 @@ class _ClassListState extends ConsumerState<ClassList> {
   bool showConfirmDialog = false;
   bool showSignatureDialog = false;
   bool _isSaving = false;
+
+  // Multi-step signature state
+  int _signatureStep = 1; // 1: Surveillant, 2: Délégué, 3: Professeur
+  Uint8List? _signatureSurveillant;
+  Uint8List? _signatureDelegue;
+  Uint8List? _signatureProf;
+
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.black,
@@ -68,15 +76,37 @@ class _ClassListState extends ConsumerState<ClassList> {
     super.dispose();
   }
 
-  Future<void> _handleSave() async {
-    if (_isSaving) return; // Empêche les clics multiples
+  Future<void> _handleSignatureNext() async {
+    if (_isSaving) return;
 
-    if (_signatureController.isEmpty) {
-      AppNotification.warning(
-        "La signature du professeur est requise pour valider",
-      );
+    final bool isRequired = _signatureStep == 1 || _signatureStep == 2;
+
+    if (isRequired && _signatureController.isEmpty) {
+      String role = _signatureStep == 1 ? "surveillant" : "délégué";
+      AppNotification.warning("La signature du $role est requise");
       return;
     }
+
+    final bytes = await _signatureController.toPngBytes();
+
+    setState(() {
+      if (_signatureStep == 1) {
+        _signatureSurveillant = bytes;
+        _signatureStep = 2;
+        _signatureController.clear();
+      } else if (_signatureStep == 2) {
+        _signatureDelegue = bytes;
+        _signatureStep = 3;
+        _signatureController.clear();
+      } else {
+        _signatureProf = bytes;
+        _handleSave();
+      }
+    });
+  }
+
+  Future<void> _handleSave() async {
+    if (_isSaving) return;
 
     setState(() => _isSaving = true);
 
@@ -87,8 +117,6 @@ class _ClassListState extends ConsumerState<ClassList> {
       if (user == null) {
         throw Exception("Utilisateur non trouvé");
       }
-
-      final signatureBytes = await _signatureController.toPngBytes();
 
       // Vérifier si la présence existe déjà pour cette séance (idempotence)
       final existing = await supabase
@@ -110,7 +138,9 @@ class _ClassListState extends ConsumerState<ClassList> {
           .insert({
             'id_seance': widget.idSeance,
             'id_surveillant': user.idSurveillant,
-            'signature_prof': signatureBytes,
+            'signature_surveillant': _signatureSurveillant,
+            'signature_delegue': _signatureDelegue,
+            'signature_prof': _signatureProf,
           })
           .select('id_presence')
           .single();
@@ -129,7 +159,7 @@ class _ClassListState extends ConsumerState<ClassList> {
 
       await supabase.from('details_presence').insert(detailsData);
 
-      final sessionDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
+      final sessionDate = DateFormat('dd / MM / yyyy').format(DateTime.now());
 
       String formatHour(String t) {
         final p = t.split(':');
@@ -137,7 +167,7 @@ class _ClassListState extends ConsumerState<ClassList> {
       }
 
       final courseHour =
-          '${formatHour(widget.heureDebut)}-${formatHour(widget.heureFin)}';
+          '${formatHour(widget.heureDebut)} - ${formatHour(widget.heureFin)}';
 
       final absentStudents = students
           .where((s) => s['isAbsent'] && s['parentPhoneNumber'] != 'N/A')
@@ -523,6 +553,8 @@ class _ClassListState extends ConsumerState<ClassList> {
                           setState(() {
                             showConfirmDialog = false;
                             showSignatureDialog = true;
+                            _signatureStep = 1; // Reset to first step
+                            _signatureController.clear();
                           });
                         }),
                         _dialogButton("Annuler", Icons.cancel, toggleDialog),
@@ -568,6 +600,24 @@ class _ClassListState extends ConsumerState<ClassList> {
   }
 
   Widget _signatureDialog() {
+    String title = "";
+    String subTitle = "";
+    String buttonLabel = "";
+
+    if (_signatureStep == 1) {
+      title = "Signature du Surveillant";
+      subTitle = "La signature du surveillant est requise";
+      buttonLabel = "CONTINUER";
+    } else if (_signatureStep == 2) {
+      title = "Signature du Délégué";
+      subTitle = "La signature du délégué de classe est requise";
+      buttonLabel = "CONTINUER";
+    } else {
+      title = "Signature du Professeur";
+      subTitle = "La signature du professeur est optionnelle";
+      buttonLabel = _isSaving ? "Enregistrement..." : "ENREGISTRER";
+    }
+
     return SizedBox.expand(
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -591,10 +641,10 @@ class _ClassListState extends ConsumerState<ClassList> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Signature du Professeur",
-                              style: TextStyle(
+                              title,
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -603,14 +653,14 @@ class _ClassListState extends ConsumerState<ClassList> {
                           IconButton(
                             onPressed: () =>
                                 setState(() => showSignatureDialog = false),
-                            icon: const Icon(Icons.close, size: 30),
+                            icon: const Icon(Icons.cancel_outlined, size: 30),
                           ),
                         ],
                       ),
-                      const Text(
-                        "Émargement numérique requis pour valider la séance",
-                        style: TextStyle(color: Colors.grey),
-                        textAlign: TextAlign.center,
+                      Text(
+                        subTitle,
+                        style: const TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.left,
                       ),
                       const SizedBox(height: 20),
                       Container(
@@ -646,10 +696,8 @@ class _ClassListState extends ConsumerState<ClassList> {
                       SizedBox(
                         width: double.infinity,
                         child: Button(
-                          label: _isSaving
-                              ? "Enregistrement..."
-                              : "ENREGISTRER",
-                          onPressed: _isSaving ? null : _handleSave,
+                          label: buttonLabel,
+                          onPressed: _isSaving ? null : _handleSignatureNext,
                         ),
                       ),
                     ],

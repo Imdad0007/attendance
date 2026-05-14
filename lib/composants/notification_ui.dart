@@ -188,7 +188,7 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                    icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.grey),
                     onPressed: widget.onDismiss,
                   ),
                 ],

@@ -20,7 +20,9 @@ class DetailHistorique extends ConsumerStatefulWidget {
 
 class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
   List<Map<String, dynamic>> absents = [];
-  Uint8List? signatureBytes;
+  Uint8List? signatureProf;
+  Uint8List? signatureSurveillant;
+  Uint8List? signatureDelegue;
   bool isLoading = true;
 
   @override
@@ -35,16 +37,21 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
 
       final presenceData = await supabase
           .from('presence')
-          .select('id_presence, signature_prof')
+          .select(
+            'id_presence, signature_prof, signature_surveillant, signature_delegue',
+          )
           .eq('id_seance', widget.item.idSeance)
           .single();
 
       final idPresence = presenceData['id_presence'];
-      final rawSignature = presenceData['signature_prof'];
 
-      if (rawSignature != null) {
+      if (mounted) {
         setState(() {
-          signatureBytes = _robustDecode(rawSignature);
+          signatureProf = _robustDecode(presenceData['signature_prof']);
+          signatureSurveillant = _robustDecode(
+            presenceData['signature_surveillant'],
+          );
+          signatureDelegue = _robustDecode(presenceData['signature_delegue']);
         });
       }
 
@@ -246,54 +253,34 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
 
                 const SizedBox(height: 30),
 
-                // SIGNATURE PROFESSEUR
+                // SIGNATURES SECTION
                 const Text(
-                  "Signature du Professeur",
+                  "Émargements",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(
-                    minHeight: 150,
-                    maxHeight: 200,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: signatureBytes != null && signatureBytes!.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Image.memory(
-                            signatureBytes!,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(
-                                  child: Icon(
-                                    Icons.broken_image_outlined,
-                                    color: Colors.red,
-                                    size: 40,
-                                  ),
-                                ),
-                          ),
-                        )
-                      : Center(
-                          child: isLoading
-                              ? const CircularProgressIndicator()
-                              : const Text(
-                                  "Pas de signature disponible",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                        ),
+                const SizedBox(height: 15),
+
+                // Utilisation d'un Wrap pour bien gérer l'espace sur différents écrans
+                Wrap(
+                  spacing: 15,
+                  runSpacing: 15,
+                  children: [
+                    _signatureCard(
+                      "Surveillant",
+                      signatureSurveillant,
+                      MediaQuery.of(context).size.width,
+                    ),
+                    _signatureCard(
+                      "Délégué",
+                      signatureDelegue,
+                      MediaQuery.of(context).size.width,
+                    ),
+                    _signatureCard(
+                      "Professeur",
+                      signatureProf,
+                      MediaQuery.of(context).size.width,
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 30),
@@ -507,4 +494,49 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
       ],
     ),
   );
+
+  Widget _signatureCard(String title, Uint8List? bytes, double screenWidth) {
+    // Largeur dynamique pour afficher 1 ou 2 colonnes selon l'écran
+    double cardWidth = screenWidth > 600 ? (screenWidth - 70) / 2 : screenWidth;
+
+    return Container(
+      width: cardWidth,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.grey.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 100,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: bytes != null && bytes.isNotEmpty
+                ? Image.memory(bytes, fit: BoxFit.contain)
+                : const Center(
+                  child: Text(
+                    "Non signée",
+                    style: TextStyle(color: AppColors.grey, fontSize: 14),
+                  ),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
 }
