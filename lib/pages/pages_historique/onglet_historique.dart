@@ -212,9 +212,7 @@ class _HistoriqueState extends ConsumerState<Historique> {
     }
   }
 
-  Widget _buildDateGroup(String date, List<HistoriqueModel> items) {
-    final isExpanded = expandedDates[date] ?? true;
-
+  Widget _buildDateGroup(String date, List<HistoriqueModel> items, bool isExpanded) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -592,7 +590,8 @@ class _HistoriqueState extends ConsumerState<Historique> {
                             }
                             final dateKey = sortedDates[i];
                             final items = grouped[dateKey]!;
-                            return _buildDateGroup(dateKey, items);
+                            final isExpanded = expandedDates[dateKey] ?? (i == 0);
+                            return _buildDateGroup(dateKey, items, isExpanded);
                           },
                         ),
                       );

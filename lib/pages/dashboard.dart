@@ -589,7 +589,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                       ),
                     ),
                     pw.Text(
-                      "L'ÉCOLE DES MANAGERS",
+                      "L'École des Métiers de l'Entreprise",
                       style: pw.TextStyle(
                         fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
@@ -680,6 +680,161 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   // ... (dans la classe _DashboardState)
 
+  Future<void> _generateDailyProgramReport() async {
+    try {
+      AppNotification.info("Préparation de la fiche de programmation...");
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      final fontData = await rootBundle.load("assets/fonts/JetBrainsMono-Regular.ttf");
+      final ttf = pw.Font.ttf(fontData);
+      final fontDataBold = await rootBundle.load("assets/fonts/JetBrainsMono-Bold.ttf");
+      final ttfBold = pw.Font.ttf(fontDataBold);
+
+      final response = await _supabase.from('seance').select('''
+        heure_debut,
+        heure_fin,
+        ecue (
+          intitule_ecue,
+          ue (
+            classe (
+              filiere (nom_filiere),
+              niveau (libelle)
+            )
+          )
+        ),
+        salle (nom)
+      ''').eq('date_seance', today).order('heure_debut', ascending: true);
+
+      final List data = response as List;
+
+      if (data.isEmpty) {
+        AppNotification.warning("Aucune séance programmée pour aujourd'hui.");
+        return;
+      }
+
+      // Groupement par heure
+      final Map<String, List<Map<String, dynamic>>> grouped = {};
+      for (var s in data) {
+        final start = (s['heure_debut'] as String).substring(0, 5);
+        final end = (s['heure_fin'] as String).substring(0, 5);
+        final key = "$start - $end";
+        if (!grouped.containsKey(key)) grouped[key] = [];
+        grouped[key]!.add(Map<String, dynamic>.from(s));
+      }
+
+      final pdf = pw.Document();
+      final now = DateTime.now();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
+          header: (context) => pw.Column(
+            children: [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text("PIGIER BÉNIN",
+                          style: pw.TextStyle(
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.blue900)),
+                      pw.Text("L'École des Métiers de l'Entreprise",
+                          style: pw.TextStyle(
+                              fontSize: 8,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.orange800)),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text("PROGRAMMATION DES COURS",
+                          style: pw.TextStyle(
+                              fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(DateFormat('EEEE dd MMMM yyyy', 'fr_FR').format(now).toUpperCase(),
+                          style: const pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 10),
+              pw.Divider(thickness: 1.5, color: PdfColors.blue900),
+              pw.SizedBox(height: 20),
+            ],
+          ),
+          build: (context) => [
+            for (var entry in grouped.entries) ...[
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.blueGrey100,
+                ),
+                child: pw.Text("HORAIRE : ${entry.key}",
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+              ),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3), // Classe
+                  1: const pw.FlexColumnWidth(4), // Ecue
+                  2: const pw.FlexColumnWidth(2), // Salle
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.blue900),
+                    children: [
+                      _pdfHeaderCell("CLASSE"),
+                      _pdfHeaderCell("ECUE"),
+                      _pdfHeaderCell("SALLE"),
+                    ],
+                  ),
+                  for (var s in entry.value)
+                    pw.TableRow(
+                      children: [
+                        _pdfCell("${s['ecue']['ue']['classe']['filiere']['nom_filiere']} - ${s['ecue']['ue']['classe']['niveau']['libelle']}"),
+                        _pdfCell(s['ecue']['intitule_ecue']),
+                        _pdfCell(s['salle']['nom'], align: pw.TextAlign.center),
+                      ],
+                    ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+            ],
+          ],
+          footer: (context) => pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text("Page ${context.pageNumber}/${context.pagesCount}",
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+          ),
+        ),
+      );
+
+      await _finalizePdf(pdf, "programmation_cours_${today}");
+    } catch (e, stack) {
+      debugPrint("Daily Program PDF Error: $e\n$stack");
+      AppNotification.error("Erreur lors de la génération du programme");
+    }
+  }
+
+  pw.Widget _pdfHeaderCell(String text) => pw.Padding(
+        padding: const pw.EdgeInsets.all(6),
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
+            textAlign: pw.TextAlign.center),
+      );
+
+  pw.Widget _pdfCell(String text, {pw.TextAlign align = pw.TextAlign.left}) => pw.Padding(
+        padding: const pw.EdgeInsets.all(6),
+        child: pw.Text(text, style: const pw.TextStyle(fontSize: 8), textAlign: align),
+      );
+
   Future<void> _finalizePdf(pw.Document pdf, String baseName) async {
     final bytes = await pdf.save();
     final filename =
@@ -704,36 +859,54 @@ class _DashboardState extends ConsumerState<Dashboard> {
       ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-
-        // backgroundColor : AppColors.bg,
+        color: AppColors.bg,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                "RAPPORTS MENSUEL PAR NIVEAU",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                "GÉNÉRATION DE RAPPORTS",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 25),
 
+              // Nouvelle Option : Programmation du Jour
+              _exportOptionTile(
+                "Programmation du Jour",
+                "Fiche des séances de cours",
+                Icons.today,
+                () {
+                  Navigator.pop(context);
+                  _generateDailyProgramReport();
+                },
+              ),
+
+              const Divider(height: 40),
+
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "BILANS MENSUELS D'ABSENCES",
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 15),
+
               if (_allLevels.isEmpty)
-                const Text("Chargement des niveaux...")
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text("Chargement des niveaux..."),
+                )
               else
                 ..._allLevels.map(
-                  (l) => ListTile(
-                    leading: const Icon(
-                      Icons.analytics,
-                      color: AppColors.primary,
-                    ),
-                    title: Text("Niveau ${l['label']}"),
-                    subtitle: const Text(
-                      "Tableau détaillé des absences du mois",
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    onTap: () {
+                  (l) => _exportOptionTile(
+                    "Niveau ${l['label']}",
+                    "Tableau détaillé des absences du mois",
+                    Icons.analytics_outlined,
+                    () {
                       Navigator.pop(context);
                       _generateLevelReport(l['id'], l['label']);
                     },
@@ -744,6 +917,24 @@ class _DashboardState extends ConsumerState<Dashboard> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _exportOptionTile(String title, String subtitle, IconData icon, VoidCallback onTap) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: AppColors.primary),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
     );
   }
 

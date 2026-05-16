@@ -86,13 +86,23 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
           List<Map<String, dynamic>>.from(response);
 
       final Map<String, List<Map<String, dynamic>>> grouped = {};
+      
+      // Trier les séances pour identifier la date la plus récente
+      final List<String> sortedDatesFromData = allSeances
+          .map((s) => (s['date_seance'] ?? 'Sans date') as String)
+          .toSet()
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
+        
+      final firstDate = sortedDatesFromData.isNotEmpty ? sortedDatesFromData.first : null;
+
       for (var s in allSeances) {
         final date = s['date_seance'] ?? 'Sans date';
         if (!grouped.containsKey(date)) {
           grouped[date] = [];
-          // Par défaut, on déplie les dates récentes ou toutes
+          // Par défaut, on ne déplie que la première date (la plus récente)
           if (!expandedDates.containsKey(date)) {
-            expandedDates[date] = true;
+            expandedDates[date] = (date == firstDate);
           }
         }
         grouped[date]!.add(s);
@@ -203,7 +213,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
   }
 
   Widget _buildDateGroup(String date, List<Map<String, dynamic>> sessions) {
-    final isExpanded = expandedDates[date] ?? true;
+    final isExpanded = expandedDates[date] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +321,7 @@ class _ConsulterSeanceState extends ConsumerState<ConsulterSeance> {
                       ),
 
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 16),
 
                       _infoRow(
                         Icons.school_outlined,

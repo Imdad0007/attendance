@@ -212,13 +212,14 @@ class _DetailHistoriqueState extends ConsumerState<DetailHistorique> {
                                     ],
                                   ),
 
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 16),
+                                  
                                   _infoRow(
                                     Icons.school_outlined,
                                     "Classe : ${widget.item.classe}",
                                   ),
 
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 10),
                                   _infoRow(
                                     Icons.book_outlined,
                                     "Ecue : ${widget.item.ecue}",
