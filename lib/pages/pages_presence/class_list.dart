@@ -644,6 +644,7 @@ class _ClassListState extends ConsumerState<ClassList> {
                           Expanded(
                             child: Text(
                               title,
+                              textAlign: TextAlign.left,
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

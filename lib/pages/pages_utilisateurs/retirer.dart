@@ -53,7 +53,8 @@ class _RetirerState extends ConsumerState<Retirer> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmation'),
-        content: Text('Voulez-vous vraiment Retirer $nomComplet ?'),
+        backgroundColor: AppColors.bg,
+        content: Text('Voulez-vous vraiment retirer $nomComplet ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

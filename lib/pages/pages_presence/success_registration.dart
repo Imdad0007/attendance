@@ -79,9 +79,9 @@ class SuccessRegistration extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           // failedNotifications == 0
-                          /*?*/ "La présence a été enregistrée avec succès. Toutes les notifications WhatsApp ont été envoyées.",
+                          /*?*/ "La présence a été enregistrée avec succès.Toutes les notifications d'absence par WhatsApp ont été envoyées.",
                           // : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
-                          textAlign: TextAlign.center,
+                          // textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 18,
                             color: AppColors.grey,

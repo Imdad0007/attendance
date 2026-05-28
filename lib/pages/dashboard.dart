@@ -853,6 +853,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
   void _showExportOptions() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.bg,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
