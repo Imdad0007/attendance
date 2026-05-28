@@ -288,8 +288,10 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
     try {
       final ueResponse = await _supabase
           .from('ue')
-          .select('id_ue')
-          .eq('id_classe', idClasse);
+          .select('id_ue, intitule_ecue')
+          .eq('id_classe', idClasse)
+          .order('nom_ue', ascending: true); ;
+
       final ueIds = (ueResponse as List).map((e) => e['id_ue'] as int).toList();
 
       if (ueIds.isEmpty) {

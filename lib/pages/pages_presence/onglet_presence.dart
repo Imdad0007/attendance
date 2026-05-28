@@ -483,14 +483,18 @@ class _Presence extends ConsumerState<Presence> {
       final students = (response as List)
           .map(
             (e) => {
-              'nom': e['nom'],
-              'prenom': e['prenom'],
-              'matricule': e['matricule'],
+              'nom': e['nom'] ?? 'Inconnu',
+              'prenom': e['prenom'] ?? '',
+              'matricule': e['matricule']?.toString() ?? 'N/A',
             },
           )
           .toList();
 
-      final matricules = students.map((s) => s['matricule'] as String).toList();
+      // Filtrer les matricules valides pour la requête suivante
+      final matricules = students
+          .map((s) => s['matricule'] as String)
+          .where((m) => m != 'N/A')
+          .toList();
 
       final parentResponse = await _supabase
           .from('etudiant_parent')
@@ -500,7 +504,15 @@ class _Presence extends ConsumerState<Presence> {
       final Map<String, String> phones = {};
 
       for (final r in parentResponse) {
-        phones[r['matricule']] = r['parent']['telephone'];
+        final String? matricule = r['matricule']?.toString();
+        final parent = r['parent'];
+        
+        if (matricule != null && parent != null) {
+          final String? tel = parent['telephone']?.toString();
+          if (tel != null) {
+            phones[matricule] = tel;
+          }
+        }
       }
 
       final studentsWithParents = students
