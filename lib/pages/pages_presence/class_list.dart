@@ -170,18 +170,24 @@ class _ClassListState extends ConsumerState<ClassList> {
           '${formatHour(widget.heureDebut)} - ${formatHour(widget.heureFin)}';
 
       final absentStudents = students
-          .where((s) => s['isAbsent'] && s['parentPhoneNumber'] != 'N/A')
+          .where((s) => s['isAbsent'] && (s['parentPhoneNumbers'] as List).isNotEmpty)
           .toList();
 
-      final tasks = absentStudents.map((s) {
-        return WhatsAppService.sendAbsenceTemplate(
-          phone: s['parentPhoneNumber'],
-          studentName: '${s['nom']} ${s['prenom']}',
-          dateAbsence: sessionDate,
-          courseName: widget.ecueLabel,
-          coursehour: courseHour,
-        );
-      });
+      final List<Future<bool>> tasks = [];
+      for (final s in absentStudents) {
+        final List<String> phoneNumbers = List<String>.from(s['parentPhoneNumbers']);
+        for (final phone in phoneNumbers) {
+          tasks.add(
+            WhatsAppService.sendAbsenceTemplate(
+              phone: phone,
+              studentName: '${s['nom']} ${s['prenom']}',
+              dateAbsence: sessionDate,
+              courseName: widget.ecueLabel,
+              coursehour: courseHour,
+            ),
+          );
+        }
+      }
 
       final results = await Future.wait(tasks);
       final failed = results.where((e) => e == false).length;

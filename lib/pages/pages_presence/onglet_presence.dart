@@ -501,7 +501,7 @@ class _Presence extends ConsumerState<Presence> {
           .select('matricule, parent(telephone)')
           .inFilter('matricule', matricules);
 
-      final Map<String, String> phones = {};
+      final Map<String, List<String>> phones = {};
 
       for (final r in parentResponse) {
         final String? matricule = r['matricule']?.toString();
@@ -510,14 +510,20 @@ class _Presence extends ConsumerState<Presence> {
         if (matricule != null && parent != null) {
           final String? tel = parent['telephone']?.toString();
           if (tel != null) {
-            phones[matricule] = tel;
+            if (!phones.containsKey(matricule)) {
+              phones[matricule] = [];
+            }
+            phones[matricule]!.add(tel);
           }
         }
       }
 
       final studentsWithParents = students
           .map(
-            (s) => {...s, 'parentPhoneNumber': phones[s['matricule']] ?? 'N/A'},
+            (s) => {
+              ...s, 
+              'parentPhoneNumbers': phones[s['matricule']] ?? []
+            },
           )
           .toList();
 

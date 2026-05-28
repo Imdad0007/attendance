@@ -243,20 +243,25 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
           .select('id_filiere, filiere(nom_filiere)')
           .eq('id_niveau', idNiveau);
 
-      final data = (response as List)
-          .map(
-            (item) => {
-              'id_filiere': item['id_filiere'],
-              'nom_filiere': item['filiere']['nom_filiere'],
-            },
-          )
-          .toList();
+      final Map<int, String> uniqueFilieres = {};
+      for (var item in (response as List)) {
+        final f = item['filiere'];
+        if (f != null) {
+          uniqueFilieres[item['id_filiere']] = f['nom_filiere'];
+        }
+      }
+
+      final data = uniqueFilieres.entries
+          .map((e) => {'id_filiere': e.key, 'nom_filiere': e.value})
+          .toList()
+        ..sort((a, b) => (a['nom_filiere'] as String).compareTo(b['nom_filiere'] as String));
 
       setState(() {
         filieres = data;
         isLoadingFilieres = false;
       });
     } catch (e) {
+      debugPrint("Erreur fetchFilieres: $e");
       setState(() => isLoadingFilieres = false);
     }
   }
@@ -267,34 +272,11 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
           .from('classe')
           .select('id_classe')
           .eq('id_niveau', idNiveau)
-          .eq('id_filiere', idFiliere)
-          .maybeSingle();
+          .eq('id_filiere', idFiliere);
 
-      if (response == null) return;
+      final List<int> classIds = (response as List).map((c) => c['id_classe'] as int).toList();
 
-      setState(() {
-        selectedClasse = response['id_classe'];
-        selectedEcue = null;
-        ecue = [];
-      });
-
-      await _fetchEcue(response['id_classe']);
-    } catch (e) {
-      debugPrint("Erreur fetchClasse: $e");
-    }
-  }
-
-  Future<void> _fetchEcue(int idClasse) async {
-    try {
-      final ueResponse = await _supabase
-          .from('ue')
-          .select('id_ue, intitule_ecue')
-          .eq('id_classe', idClasse)
-          .order('nom_ue', ascending: true); ;
-
-      final ueIds = (ueResponse as List).map((e) => e['id_ue'] as int).toList();
-
-      if (ueIds.isEmpty) {
+      if (classIds.isEmpty) {
         setState(() {
           ecue = [];
           isLoadingEcue = false;
@@ -302,24 +284,38 @@ class _CreerSeanceState extends ConsumerState<CreerSeance> {
         return;
       }
 
-      final ecueResponse = await _supabase
-          .from('ecue')
-          .select('id_ecue, intitule_ecue')
-          .inFilter('id_ue', ueIds);
-
-      setState(() {
-        ecue = (ecueResponse as List)
-            .map(
-              (item) => {
-                'id_ecue': item['id_ecue'],
-                'intitule_ecue': item['intitule_ecue'],
-              },
-            )
-            .toList();
-        isLoadingEcue = false;
-      });
+      // On récupère les ECUE de toutes les classes correspondantes
+      await _fetchEcue(classIds);
     } catch (e) {
-      setState(() => isLoadingEcue = false);
+      debugPrint("Erreur fetchClasse: $e");
+      if (mounted) setState(() => isLoadingEcue = false);
+    }
+  }
+
+  Future<void> _fetchEcue(List<int> classIds) async {
+    try {
+      final response = await _supabase
+          .from('ecue')
+          .select('id_ecue, intitule_ecue, ue!inner(id_classe)')
+          .inFilter('ue.id_classe', classIds)
+          .order('intitule_ecue', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          ecue = (response as List)
+              .map(
+                (item) => {
+                  'id_ecue': item['id_ecue'],
+                  'intitule_ecue': item['intitule_ecue'],
+                },
+              )
+              .toList();
+          isLoadingEcue = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur fetchEcue: $e");
+      if (mounted) setState(() => isLoadingEcue = false);
     }
   }
 

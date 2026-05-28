@@ -3,7 +3,6 @@ import 'package:attendance/composants/colors.dart';
 import 'package:attendance/composants/button.dart';
 import 'package:attendance/config/adaptive_layout.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:attendance/providers/navigation_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,72 +26,117 @@ class SuccessRegistration extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFFF0F2F5),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.black),
-          onPressed: closeSuccess,
-        ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: SingleChildScrollView(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 40.0,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Animation ou Icône de succès avec effet d'ombre
                   Container(
-                    padding: const EdgeInsets.all(30),
+                    width: 150,
+                    height: 150,
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: Colors.green.withOpacity(0.1),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.05),
+                          blurRadius: 20,
+                          spreadRadius: 10,
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      color: Colors.green,
-                      size: 120,
+                    child: const Center(
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF16A34A),
+                        size: 100,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),
+
+                  // Titre Principal
                   const Text(
-                    "ENREGISTREMENT RÉUSSI",
+                    "Enregistrement Terminé",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.black,
-                      letterSpacing: 1.2,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          // failedNotifications == 0
-                          /*?*/ "La présence a été enregistrée avec succès.Toutes les notifications d'absence par WhatsApp ont été envoyées.",
-                          // : "La présence a été enregistrée, mais $failedNotifications notification(s) WhatsApp n'ont pas pu être envoyées.",
-                          // textAlign: TextAlign.center,
-                          style: const TextStyle(
+                  const SizedBox(height: 16),
+
+                  // Texte de succès formaté
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade100),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Le contrôle de présence a été effectué avec succès.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             fontSize: 18,
-                            color: AppColors.grey,
-                            height: 1.6,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF334155),
+                            height: 1.4,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              failedNotifications == 0 
+                                ? Icons.done_all_rounded 
+                                : Icons.info_outline_rounded,
+                              size: 20,
+                              color: failedNotifications == 0 ? Colors.green : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                failedNotifications == 0
+                                    ? "Toutes les notifications d'absence ont été envoyées."
+                                    : "Présence enregistrée, mais $failedNotifications notification(s) ont échoué.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+
                   const SizedBox(height: 60),
-                  Button(label: "TERMINER", onPressed: closeSuccess),
+
+                  // Bouton de retour
+                  SizedBox(
+                    width: double.infinity,
+                    child: Button(
+                      label: "TERMINER",
+                      onPressed: closeSuccess,
+                    ),
+                  ),
                 ],
               ),
             ),
